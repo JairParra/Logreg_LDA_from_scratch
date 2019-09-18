@@ -63,7 +63,7 @@ def normalize_df(df, columns=[]):
 red_wine_df_cols = list(red_wine_df.columns)[:-1] # don't include the targets
 
 # Pairplot without normalization 
-sns.pairplot(red_wine_df.drop('quality', axis= 1))
+sns.pairplot(red_wine_df.drop('quality', axis= 1), diag_kind="kde" )
 
 # Normalize
 normalize_df(red_wine_df, columns=red_wine_df_cols)
@@ -145,7 +145,7 @@ sns.pairplot(cancer_df.drop('Class',axis=1), diag_kind='kde')
 # 2.2 Separate into Features and labels for both  
 
 # Red wine data features and labels
-X_redwine = red_wine_df.drop('quality', axis=1).values 
+X_redwine = red_wine_df.drop('quality', axis=1).values.astype('float64')
 y_redwine = red_wine_df['quality']
 
 # Cancer data features and labels 
@@ -196,9 +196,19 @@ class LogisticRegression():
     
     def d_sigmoid(self, x): 
         return self.sigmoid(x)*(1-self.sigmoid(x)) 
-
     
-
+    # loss function
+    def cross_entropy_loss(self): 
+        
+        total_loss = []
+        # for each datapoint
+        for i in range(self.n): 
+            wTx = np.matmul(T(self.w), self.X[i]) 
+            sig_wTx = self.sigmoid(wTx)
+            loss = -self.y[i]*np.log(sig_wTx) + (1-self.y[i])*np.log(1 - sig_wTx)
+            total_loss.append(loss) 
+            
+        return np.sum(total_loss)
 
     
 
@@ -206,6 +216,11 @@ class LogisticRegression():
 obj = LogisticRegression(X_redwine, y_redwine)
 obj.sigmoid(4)
 
+# ***********************************************************
+
+### MODEL : WILL NOT EXACTLY USE THIS IN THE ASSG ### 
+
+# ***********************************************************
 
 class LinearRegression(): 
     
@@ -272,25 +287,3 @@ class LinearRegression():
                 break
             
             prev_error = error
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
