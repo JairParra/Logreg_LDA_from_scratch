@@ -25,12 +25,13 @@ Created on Mon Sep 16 15:57:52 2019
 
 ### 1. Imports ### 
 
+import math
 import scipy
 import random
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt 
-import seaborn as sns
+import seaborn as sns # easier & prettier visualization 
 from tqdm import tqdm # to display progress bar
 from numpy import transpose as T # because it is a pain in the ass
 
@@ -73,8 +74,8 @@ normalize_df(red_wine_df, columns=red_wine_df_cols)
 
 # Statistics
 print("Red wine df shape: {}".format(red_wine_df.shape)) 
-print("Red wine 'Good' counts: ", red_wine_df['quality'][red_wine_df['quality'] == 'Good'].count() )
-print("Red wine 'Bad' counds: ", red_wine_df['quality'][red_wine_df['quality'] == 'Bad'].count() )
+print("Red wine 'Good' counts: ", red_wine_df['quality'][red_wine_df['quality'] == 1].count() )
+print("Red wine 'Bad' counds: ", red_wine_df['quality'][red_wine_df['quality'] == 0].count() )
 red_wine_df_stats = red_wine_df.drop('quality', axis=1).describe()
 
 # Label distribution plot
@@ -131,8 +132,8 @@ for column in cancer_df.columns[:-1]:
 
 # Print shape and obtain statistics. 
 print("cancer_df shape: {}".format(cancer_df.shape)) 
-print("cancer data 'Benign' counts: ", cancer_df['Class'][cancer_df['Class'] == 'benign'].count() )
-print("cancer data 'Malignant' counts: ", cancer_df['Class'][cancer_df['Class'] == 'malignant'].count() )
+print("cancer data 'Benign' counts: ", cancer_df['Class'][cancer_df['Class'] == 1].count() )
+print("cancer data 'Malignant' counts: ", cancer_df['Class'][cancer_df['Class'] == 0].count() )
 cancer_df_stats = cancer_df.drop('Class', axis=1).describe()
 
 # Labels distribution plot 
@@ -160,6 +161,8 @@ y_cancer = cancer_df['Class']
 
 ### 3. Helper Functions ### 
 
+def train_test_split(X,y, train_size=0.8, test_size=0.2, random_state=42): 
+    
 
 # *****************************************************************************
 
@@ -273,10 +276,16 @@ class LogisticRegression():
             y_i = self.y[i] 
             wTx = float(np.matmul(T(self.w), x_i)) #w^Tx
             sigm_wTx = self.sigmoid(wTx)
+            
+            if verbose:
+                print("wTx: " , wTx) 
+                print("sigm_wTx ", sigm_wTx)
+                print("log(sigm_wTx) ", math.log(sigm_wTx))
+            
             if y_i == 1:
-                total_loss.append(-np.log(sigm_wTx)) 
+                total_loss.append(-1*math.log(sigm_wTx + 0.01)) 
             else: 
-                total_loss.append(-np.log(1-sigm_wTx))
+                total_loss.append(1*math.log(1-sigm_wTx + 0.01))
             
         if verbose: 
             print("Loss array: \n") 
@@ -337,114 +346,3 @@ class LogisticRegression():
         
         
         
-    
-
-# TESTS 
-obj = LogisticRegression()
-obj = LogisticRegression(X_redwine, y_redwine)
-obj.sigmoid(4)
-obj.cross_entropy_loss()
-obj.gradient()
-
-obj.train(epochs = 1000)
-
-obj.fit(X_redwine,y_redwine)
-
-# new vector(test) 
-X_new = X_redwine[1:4,:]
-X_new.shape
-X_new = X_new[0]
-X_new = X_new[0:1,:]
-shape = X_new.shape
-
-for row in X_new: 
-    print(row.shape)
-
-obj.predict_probabilities(X_new)
-obj.predict(X_new)
-
-obj.gradient()
-
-
-# ***********************************************************
-
-### MODEL : WILL NOT EXACTLY USE THIS IN THE ASSG ### 
-
-# ***********************************************************
-
-### 5. Implementing Linear Discriminant Analysis 
-
-## ---> PLEASE IMPLEMENT THE MODEL HERE <--- ### 
-
-
-# *********************************************************
-
-
-
-
-# *********************************************************
-class LinearRegression(): 
-    
-    np.random.seed(42)
-    
-    def __init__(self, X, y): 
-        """
-        X: (n x m) matrix of features with n observations 
-         and m features. 
-        y: (n x 1) vector of targets
-        """        
-        
-        if X.shape[0] != y.shape[0]: 
-            message = "Input dimensions don't match" 
-            message += "\n X is {} but y is {}".format(X.shape, y.shape)
-            raise ValueError(message)
-        
-        self.n = X.shape[0] 
-        self.m = X.shape[1] + 1
-        X_0 = np.ones(self. n) # intercept
-        self.X = np.c_[X_0, X] # concatenate
-        self.w = np.random.rand(self.m, 1) # random initialization 
-        self.y = y
-        
-        print("X: \n", self.X) 
-        print("w: \n", self.w) 
-        print("y: \n", self.y)
-        print("n: ", self.n)
-        print("m: ", self.m)
-    
-    def predict(self, X_new): 
-        return np.matmul(X_new, self.w) 
-         
-    def MSE(self): 
-        # (y- Xw)T (y-Xw)
-        pred = self.predict(self.X) 
-        diff = self.y - pred 
-        return np.matmul(T(diff), diff)[0][0]
-    
-    
-    def gradient(self): 
-        pred = self.predict(self.X) # Xw
-        diff = self.y - pred  # y-Xw
-        return -2 * np.matmul(T(self.X), diff) # -2X^T (y-Xw)
-    
-    
-    def train(self, alpha = 0.02, threshold = 0.5, epochs = 10): 
-        """
-        Trains itself using gradient descent
-        """
-        prev_error = self.MSE() + 1000 # Initialize error
-        
-        for k in tqdm(range(epochs), desc="\nTraining...") : 
-            
-            grad = alpha*self.gradient()            
-            temp = self.w - grad
-            self.w = temp
-            error = self.MSE()
-            
-            print("\nEpoch {}".format(k+1))
-            print("MSE: %.2f" % (error) )
-                        
-            if abs(error-prev_error) < threshold: 
-                break
-            
-            prev_error = error
