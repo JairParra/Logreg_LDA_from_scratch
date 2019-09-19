@@ -169,12 +169,16 @@ class LogisticRegression():
     
     np.random.seed(42) 
     
-    def __init__(self, X, y): 
+    def __init__(self,X=np.array([[0]]), y=np.array([0]) ): 
         """
         X: (n x m) matrix of features with n observations 
          and m features. (in np matrix format)
         y: (n x 1) vector of targets (as Series)
-        """ 
+        
+        """     
+        if X[0,0] == 0 and y[0] == 0: 
+            print("Default initialization") 
+            
         # Verify dimensions
         if X.shape[0] != y.shape[0]: 
             message = "Input dimensions don't match" 
@@ -197,9 +201,6 @@ class LogisticRegression():
     def sigmoid(self, z): 
         return 1/(1+ np.exp(-z))
     
-    def d_sigmoid(self, z): 
-        return self.sigmoid(z)*(1-self.sigmoid(z)) 
-    
     def predict_probabilities(self, X_new): 
         """
         Returns a probablistic prediction using the model 
@@ -211,10 +212,22 @@ class LogisticRegression():
         """
         X_new = np.array(X_new)
         input_shape = X_new.shape
-        print("Input shape:", input_shape)
         
+        # If input is a vector 
+        if len(X_new.shape) == 1: 
+            # If input length doesn't match  
+            if(len(X_new) + 1 != self.m): 
+                message = "Input number of features doesn't match model number of parameters" 
+                message += "\nInput is has {} features but model has {} features".format(len(X_new), self.m - 1)
+                raise Exception(message)
+            else: 
+                x = np.insert(X_new, 0, 1) # for clarity 
+                wTx = float(np.matmul(T(self.w), x)) 
+                sigm_wTx = self.sigmoid(wTx) 
+                return [sigm_wTx] 
+                
         # if input is a matrix of new examples
-        if input_shape[0] > 1 and input_shape[1] > 1: 
+        elif input_shape[0] > 1 and input_shape[1] > 1: 
             print("matrix")
 #           # if number of attributes don't match 
             if (X_new.shape[1] + 1) != self.m: 
@@ -251,26 +264,91 @@ class LogisticRegression():
         return [1 if prob >= 0.5 else 0 for prob in probs]
                 
     # loss function
-    def cross_entropy_loss(self): 
+    def cross_entropy_loss(self, verbose=False): 
         
         total_loss = []
         # for each datapoint
         for i in range(self.n): 
-            wTx = float(np.matmul(T(self.w), self.X[i])) #w^Tx
-            sigm_wTx = self.sigmoid(wTx) # sigmoid(w^Tx)
-            y_i = float(self.y[i]) 
-            loss = -(y_i*np.log(sigm_wTx) + (1-y_i)*np.log(1 - sigm_wTx) )        
-            total_loss.append(loss)
+            x_i = self.X[i] 
+            y_i = self.y[i] 
+            wTx = float(np.matmul(T(self.w), x_i)) #w^Tx
+            sigm_wTx = self.sigmoid(wTx)
+            if y_i == 1:
+                total_loss.append(-np.log(sigm_wTx)) 
+            else: 
+                total_loss.append(-np.log(1-sigm_wTx))
             
+        if verbose: 
+            print("Loss array: \n") 
+            print(total_loss)
+        
         return np.sum(np.array(total_loss))
     
-
+    def gradient(self):
+        """ 
+        Calculates the gradient for the Logistic 
+        Regression model 
+        """
+        grad = np.zeros((self.m,)) # initialize gradient
+        
+        # calcualte gradient of each example 
+        # and add together
+        for i in range(self.n): 
+            x_i = self.X[i] 
+            y_i = self.y[i] 
+            wTx = float(np.matmul(T(self.w),x_i)) # w^T x
+            sigm_wTx = self.sigmoid(wTx)
+            grad += x_i*(y_i - sigm_wTx) # add to previous grad
+            
+        return grad.reshape((len(grad),1))
+    
+    def train(self, alpha=0.002, threshold=0.01, epochs=100, auto_alpha=1.0): 
+        
+        # initialize error
+        prev_error = self.cross_entropy_loss()
+        print("Initial loss: " , prev_error)
+        
+        for k in tqdm(range(epochs), desc="\nTraining...") : 
+            
+            grad = alpha*self.gradient() # calculate gradient   
+            temp = np.add(self.w, grad) # get weights update
+            self.w = temp # update weights
+            error = self.cross_entropy_loss() # calculate current error
+            
+            print("\nEpoch {}".format(k+1))
+            print("Cross-entropy loss: %.2f" % (error) )
+                        
+            if abs(error-prev_error) < threshold: 
+                break
+            
+            prev_error = error 
+            alpha = auto_alpha*alpha
+            
+        print("---Terminated---")        
+        
+    
+    def fit(self, X,y,alpha=0.02, threshold=0.0001, epochs=20): 
+        """
+        Initializes the model with the input parameters 
+        and trains
+        """
+        self.__init__(X,y) # Initialize with input 
+        self.train(self, alpha, threshold, epochs)
+        
+        
+        
     
 
 # TESTS 
+obj = LogisticRegression()
 obj = LogisticRegression(X_redwine, y_redwine)
 obj.sigmoid(4)
 obj.cross_entropy_loss()
+obj.gradient()
+
+obj.train(epochs = 1000)
+
+obj.fit(X_redwine,y_redwine)
 
 # new vector(test) 
 X_new = X_redwine[1:4,:]
@@ -284,6 +362,8 @@ for row in X_new:
 
 obj.predict_probabilities(X_new)
 obj.predict(X_new)
+
+obj.gradient()
 
 
 # ***********************************************************
@@ -368,6 +448,3 @@ class LinearRegression():
                 break
             
             prev_error = error
-
-
-
