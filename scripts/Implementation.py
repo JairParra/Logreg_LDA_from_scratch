@@ -11,6 +11,9 @@ Created on Mon Sep 16 15:57:52 2019
 @ ID: 260738619 
 
 @ Sun Gengyi 
+@ ID:  
+    
+@ Name 3 
 @ ID: 
 
 """
@@ -39,8 +42,8 @@ from numpy import transpose as T # because it is a pain in the ass
 red_wine_df = pd.read_csv('./Datasets/winequality-red.csv', sep = ';') 
 
 # Convert multi-target problem into a binary problem by aassigning only 2 classes: 
-red_wine_df.loc[red_wine_df['quality'] > 5, 'quality'] = 'Good'  # Good quality
-red_wine_df.loc[red_wine_df['quality'] != 'Good', 'quality'] = 'Bad' # Bad quality 
+red_wine_df.loc[red_wine_df['quality'] > 5, 'quality'] = 1  # Good quality
+red_wine_df.loc[red_wine_df['quality'] != 1, 'quality'] = 0 # Bad quality 
 
 # note that the data is all in different scales, therefore we will normalize 
 # each feature column/ 
@@ -118,8 +121,8 @@ cancer_df.columns = cancer_cols  # rename columns
 cancer_df = cancer_df.dropna().drop('id', axis=1) # drop na rows and id
 cancer_df = cancer_df[cancer_df['Bare Nuclei'] != '?'] # drop rows with missing vals 
 cancer_df['Bare Nuclei'] = pd.to_numeric(cancer_df['Bare Nuclei']) # change back to int
-cancer_df.loc[cancer_df['Class'] == 4, 'Class' ] = 'malignant' # malignant
-cancer_df.loc[cancer_df['Class'] == 2, 'Class' ] = 'benign' # benign
+cancer_df.loc[cancer_df['Class'] == 4, 'Class' ] = 0 # malignant
+cancer_df.loc[cancer_df['Class'] == 2, 'Class' ] = 1 # benign
 
 # Fix data type 
 for column in cancer_df.columns[:-1]: 
@@ -191,30 +194,97 @@ class LogisticRegression():
         print("Number of weights: len(w)={}".format(len(self.w)))
         
         
-    def sigmoid(self, x): 
-        return 1/(1+ np.exp(-x))
+    def sigmoid(self, z): 
+        return 1/(1+ np.exp(-z))
     
-    def d_sigmoid(self, x): 
-        return self.sigmoid(x)*(1-self.sigmoid(x)) 
+    def d_sigmoid(self, z): 
+        return self.sigmoid(z)*(1-self.sigmoid(z)) 
     
+    def predict_probabilities(self, X_new): 
+        """
+        Returns a probablistic prediction using the model 
+        parameters. 
+        inputs: 
+            @ self
+            @ X_new : (n' x m) input vector in list or 
+                      numpy format. 
+        """
+        X_new = np.array(X_new)
+        input_shape = X_new.shape
+        print("Input shape:", input_shape)
+        
+        # if input is a matrix of new examples
+        if input_shape[0] > 1 and input_shape[1] > 1: 
+            print("matrix")
+#           # if number of attributes don't match 
+            if (X_new.shape[1] + 1) != self.m: 
+                message = "Input dimensions don't match" 
+                message += "\nInput matrix contains {} features, but the model has {} fitted features".format(self.m - 1)
+                raise Exception(message)
+            # right dimensions
+            else: 
+                pred_probs = np.zeros((X_new.shape[0],1)) # to store the probs
+                X_0 = np.ones((X_new.shape[0],1)) # n-dim vector of ones
+                X_new = np.c_[X_0,X_new] # concatenate
+                
+                # since X_new is a matrix, we have to loop 
+                # over each of its rows, which comes out as
+                # a column vector 
+                for i in range(len(X_new)): 
+                    x = X_new[i] # row = example
+                    wTx = float(np.matmul(T(self.w),x)) # w^Tx 
+                    sigm_wTx = self.sigmoid(wTx)
+                    pred_probs[i] = sigm_wTx
+                    
+                return pred_probs
+            
+            
+    def predict(self, X_new): 
+        """
+        Returns an array of predictions for the 
+        new input. 
+        """
+        # get predictions 
+        probs = self.predict_probabilities(X_new) 
+        
+        # Use decision boundary
+        return [1 if prob >= 0.5 else 0 for prob in probs]
+                
     # loss function
     def cross_entropy_loss(self): 
         
         total_loss = []
         # for each datapoint
         for i in range(self.n): 
-            wTx = np.matmul(T(self.w), self.X[i]) 
-            sig_wTx = self.sigmoid(wTx)
-            loss = -self.y[i]*np.log(sig_wTx) + (1-self.y[i])*np.log(1 - sig_wTx)
-            total_loss.append(loss) 
+            wTx = float(np.matmul(T(self.w), self.X[i])) #w^Tx
+            sigm_wTx = self.sigmoid(wTx) # sigmoid(w^Tx)
+            y_i = float(self.y[i]) 
+            loss = -(y_i*np.log(sigm_wTx) + (1-y_i)*np.log(1 - sigm_wTx) )        
+            total_loss.append(loss)
             
-        return np.sum(total_loss)
+        return np.sum(np.array(total_loss))
+    
 
     
 
-
+# TESTS 
 obj = LogisticRegression(X_redwine, y_redwine)
 obj.sigmoid(4)
+obj.cross_entropy_loss()
+
+# new vector(test) 
+X_new = X_redwine[1:4,:]
+X_new.shape
+X_new = X_new[0]
+X_new = X_new[0:1,:]
+shape = X_new.shape
+
+for row in X_new: 
+    print(row.shape)
+
+obj.predict_probabilities(X_new)
+obj.predict(X_new)
+
 
 # ***********************************************************
 
@@ -222,6 +292,17 @@ obj.sigmoid(4)
 
 # ***********************************************************
 
+### 5. Implementing Linear Discriminant Analysis 
+
+## ---> PLEASE IMPLEMENT THE MODEL HERE <--- ### 
+
+
+# *********************************************************
+
+
+
+
+# *********************************************************
 class LinearRegression(): 
     
     np.random.seed(42)
@@ -287,3 +368,6 @@ class LinearRegression():
                 break
             
             prev_error = error
+
+
+
