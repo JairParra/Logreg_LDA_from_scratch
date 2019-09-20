@@ -40,7 +40,7 @@ from numpy import transpose as T # because it is a pain in the ass
 ### 2. Loading the Data, Preprocessing  & Statistics ### 
 
 ## 2.1 Load the red wine dataset
-red_wine_df = pd.read_csv('./Datasets/winequality-red.csv', sep = ';') 
+red_wine_df = pd.read_csv('../data_raw/winequality-red.csv', sep = ';') 
 
 # Convert multi-target problem into a binary problem by aassigning only 2 classes: 
 red_wine_df.loc[red_wine_df['quality'] > 5, 'quality'] = 1  # Good quality
@@ -117,7 +117,7 @@ cancer_cols= ['id',
            'Class']
 
 # Data preparation and cleaning
-cancer_df =  pd.read_csv('./Datasets/breast-cancer-wisconsin.data') # read data
+cancer_df =  pd.read_csv('../data_raw/breast-cancer-wisconsin.data') # read data
 cancer_df.columns = cancer_cols  # rename columns 
 cancer_df = cancer_df.dropna().drop('id', axis=1) # drop na rows and id
 cancer_df = cancer_df[cancer_df['Bare Nuclei'] != '?'] # drop rows with missing vals 
@@ -162,11 +162,12 @@ y_cancer = cancer_df['Class']
 ### 3. Helper Functions ### 
 
 def train_test_split(X,y, train_size=0.8, test_size=0.2, random_state=42): 
-    
+    print("Not implemented")
 
 # *****************************************************************************
 
 ### 4. Implementing Logistic Regression ### 
+
 
 class LogisticRegression(): 
     
@@ -192,7 +193,7 @@ class LogisticRegression():
         self.m = X.shape[1] + 1 # Because of intercept term 
         X_0 = np.ones(self.n) # intercept features 
         self.X = np.c_[X_0,X] # concatenate 
-        self.w = np.random.rand(self.m, 1) # initialize weights 
+        self.w = np.random.rand(self.m, 1) # randomly initialize weights 
         self.y = y 
         
         print("Initialized with dimensions X.shape=({}) y.shape=({})".format(self.X.shape, self.y.shape)) 
@@ -283,9 +284,9 @@ class LogisticRegression():
                 print("log(sigm_wTx) ", math.log(sigm_wTx))
             
             if y_i == 1:
-                total_loss.append(-1*math.log(sigm_wTx + 0.01)) 
+                total_loss.append(-1*math.log(sigm_wTx + 0.0001)) 
             else: 
-                total_loss.append(1*math.log(1-sigm_wTx + 0.01))
+                total_loss.append(1*math.log(1-sigm_wTx + 0.0001))
             
         if verbose: 
             print("Loss array: \n") 
@@ -346,3 +347,36 @@ class LogisticRegression():
         
         
         
+    
+
+# TESTS 
+obj = LogisticRegression(X_redwine, y_redwine)
+obj.sigmoid(4)
+obj.cross_entropy_loss(verbose=True)
+obj.gradient()
+
+obj.train(epochs = 100)
+
+obj.fit(X_redwine,y_redwine)
+
+# subset for test
+X_new = X_redwine[0:10,:]
+y_new = y_redwine[0:10]
+obj = LogisticRegression()
+
+
+X_new.shape
+
+# new vector(test) 
+X_new = X_new[0]
+X_new = X_new[0:1,:]
+shape = X_new.shape
+
+for row in X_new: 
+    print(row.shape)
+
+obj.predict_probabilities(X_new)
+obj.predict(X_new)
+
+obj.gradient()
+
