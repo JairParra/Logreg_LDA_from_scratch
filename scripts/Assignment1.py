@@ -125,7 +125,7 @@ cancer_df['Bare Nuclei'] = pd.to_numeric(cancer_df['Bare Nuclei']) # change back
 cancer_df.loc[cancer_df['Class'] == 4, 'Class' ] = 0 # malignant
 cancer_df.loc[cancer_df['Class'] == 2, 'Class' ] = 1 # benign
 
-# Fix data type 
+# Fix data type for each column in feature set
 for column in cancer_df.columns[:-1]: 
     print(column)
     cancer_df[column] = pd.to_numeric(cancer_df[column])
@@ -146,7 +146,20 @@ sns.pairplot(cancer_df.drop('Class',axis=1), diag_kind='kde')
 # normalize them. 
 
 
-# 2.2 Separate into Features and labels for both  
+## 2.3 Save and load data 
+
+
+# Save
+red_wine_df.to_csv('../data_clean/redwine_df.csv', index=False) 
+cancer_df.to_csv('../data_clean/cancer_df.csv', index=False)
+
+# Load 
+red_wine_df = pd.read_csv('../data_clean/redwine_df.csv') 
+cancer_df = pd.read_csv('../data_clean/cancer_df.csv')
+
+
+## 2.4 Separate both dataset into features and labels
+
 
 # Red wine data features and labels
 X_redwine = red_wine_df.drop('quality', axis=1).values.astype('float64')
@@ -157,11 +170,15 @@ X_cancer = cancer_df.drop('Class', axis=1).values.astype('float64')
 y_cancer = cancer_df['Class']
 
 
+
 # *****************************************************************************
 
 ### 3. Helper Functions ### 
 
 def train_test_split(X,y, train_size=0.8, test_size=0.2, random_state=42): 
+    
+    np.random.seed(random_state)
+    
     print("Not implemented")
 
 # *****************************************************************************
@@ -196,7 +213,7 @@ class LogisticRegression():
         self.w = np.random.rand(self.m, 1) # randomly initialize weights 
         self.y = y 
         
-        print("Initialized with dimensions X.shape=({}) y.shape=({})".format(self.X.shape, self.y.shape)) 
+        print("Initialized with dimensions\n X:({}) y:({})".format(self.X.shape, self.y.shape)) 
         print("Number of features: m={}".format(self.m)) 
         print("Number of observations: n={}".format(self.n)) 
         print("Number of weights: len(w)={}".format(len(self.w)))
@@ -216,18 +233,21 @@ class LogisticRegression():
         """
         X_new = np.array(X_new)
         input_shape = X_new.shape
+        print(input_shape)
         
         # If input is a vector 
-        if len(X_new.shape) == 1: 
+        if X_new.shape[0] == 1: 
             # If input length doesn't match  
-            if(len(X_new) + 1 != self.m): 
+            if (X_.shape[1] + 1) != self.m: 
                 message = "Input number of features doesn't match model number of parameters" 
                 message += "\nInput is has {} features but model has {} features".format(len(X_new), self.m - 1)
                 raise Exception(message)
             else: 
-                x = np.insert(X_new, 0, 1) # for clarity 
+                print("HERE")
+                x = np.insert(X_new, 0, 1) # insert an extra one at the beginning
                 wTx = float(np.matmul(T(self.w), x)) 
                 sigm_wTx = self.sigmoid(wTx) 
+                print("sigm_wTx", sigm_wTx)
                 return [sigm_wTx] 
                 
         # if input is a matrix of new examples
@@ -291,8 +311,11 @@ class LogisticRegression():
         if verbose: 
             print("Loss array: \n") 
             print(total_loss)
+            
+        loss = np.sum(np.array(total_loss))
+        print("Model loss: ", loss)
         
-        return np.sum(np.array(total_loss))
+        return loss
     
     def gradient(self):
         """ 
@@ -312,10 +335,11 @@ class LogisticRegression():
             
         return grad.reshape((len(grad),1))
     
-    def train(self, alpha=0.002, threshold=0.01, epochs=100, auto_alpha=1.0): 
+    def train(self, alpha=0.002, threshold=0.001, epochs=100, auto_alpha=0.99): 
         
         # initialize error
         prev_error = self.cross_entropy_loss()
+        initial_error = prev_error
         print("Initial loss: " , prev_error)
         
         for k in tqdm(range(epochs), desc="\nTraining...") : 
@@ -334,10 +358,13 @@ class LogisticRegression():
             prev_error = error 
             alpha = auto_alpha*alpha
             
-        print("---Terminated---")        
+        print("---Terminated---")  
+        
+        print("Initial loss: {}".format(initial_error)) 
+        print("Final loss: {}".format(prev_error))
         
     
-    def fit(self, X,y,alpha=0.02, threshold=0.0001, epochs=20): 
+    def fit(self, X,y,alpha=0.02, threshold=0.001, epochs=100): 
         """
         Initializes the model with the input parameters 
         and trains
@@ -349,13 +376,40 @@ class LogisticRegression():
         
     
 
-# TESTS 
-obj = LogisticRegression(X_redwine, y_redwine)
-obj.sigmoid(4)
-obj.cross_entropy_loss(verbose=True)
-obj.gradient()
+# TESTS :
+        
+# subset for test
+X_new = X_redwine[0:10,:] # matrix
 
-obj.train(epochs = 100)
+y_new = y_redwine[0:10]
+
+# new vector(test) 
+x_new = X_new[0:1,:] # vector
+x_new.shape
+
+        
+        
+# Way # 1
+        
+obj = LogisticRegression(X_redwine, y_redwine) # initialize 
+obj.sigmoid(4) # calculate sigmoid 
+obj.cross_entropy_loss(verbose=False) # calculate loss 
+obj.gradient() # get gradient
+obj.train(alpha=0.002, threshold=0.001, epochs=100, auto_alpha=0.99) # run gradient descent and train the model 
+obj.predict_probabilities(X_new) # predict vector of probablities
+y_pred = obj.predict(X_new) # predict classifications
+print("y_pred ", y_pred)
+print("y_new ", list(y_new))
+print("toy accuracy: {}%".format( (y_pred == y_new).sum() / len(y_pred)*100 ))
+
+
+# Way # 2
+
+
+
+# new vector(test) 
+X_new = X_new[0:1,:]
+shape = X_new.shape
 
 obj.fit(X_redwine,y_redwine)
 
@@ -363,20 +417,3 @@ obj.fit(X_redwine,y_redwine)
 X_new = X_redwine[0:10,:]
 y_new = y_redwine[0:10]
 obj = LogisticRegression()
-
-
-X_new.shape
-
-# new vector(test) 
-X_new = X_new[0]
-X_new = X_new[0:1,:]
-shape = X_new.shape
-
-for row in X_new: 
-    print(row.shape)
-
-obj.predict_probabilities(X_new)
-obj.predict(X_new)
-
-obj.gradient()
-
