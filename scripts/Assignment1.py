@@ -180,6 +180,29 @@ y_cancer = cancer_df['Class']
 
 # *****************************************************************************
 
+### 4. Helper functions ### 
+
+def evaluate_acc(model, X_test, y_test, verbose=True): 
+    """
+    Evaluates model accuracy and returns the score for 
+    a binary classification model. The input model should 
+    have a function called predict()
+    params: 
+        @ model: the input classification model 
+        @ X_test: Input 
+    """
+    y_pred = model.predict(X_test) 
+    acc = (y_pred == y_test).sum() / len(y_pred) * 100
+    
+    if verbose: 
+        print("y_pred :{}".format(y_pred)) 
+        print("y_new :".format(list(y_new)))
+        print("Accuracy: {}".format(acc))
+
+    return acc         
+
+# *****************************************************************************
+
 ### 3. TESTING LOGISITC REGRESSION ### 
 
 # import the class from the script
@@ -206,7 +229,9 @@ logreg.predict_probabilities(X_new) # predict vector of probablities
 y_pred = logreg.predict(X_new) # predict classifications
 print("y_pred ", y_pred)
 print("y_new ", list(y_new))
-print("toy accuracy: {}%".format( (y_pred == y_new).sum() / len(y_pred)*100 ))
+evaluate_acc(logreg, X_new, y_new, verbose=True)
+
+
 
 
 # Way # 2
@@ -317,7 +342,7 @@ def kfold_CV_search(algorithm, X, y, k = 5, params={}, random_state=42):
     random_state = random_state 
     X = pd.DataFrame(X) 
     X = X.iloc[np.random.permutation(len(X))] # randomly shuffle the data 
-   
 
     return X 
     
+   
