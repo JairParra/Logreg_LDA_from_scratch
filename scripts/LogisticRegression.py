@@ -45,6 +45,7 @@ class LogisticRegression():
         self.X = np.c_[X_0,X] # concatenate 
         self.w = np.random.rand(self.m, 1) # randomly initialize weights 
         self.y = y 
+        self.last_train_losses = [0] # this will be used to plot training loss
         
         print("Initialized with dimensions\n X:({}) y:({})".format(self.X.shape, self.y.shape)) 
         print("Number of features: m={}".format(self.m)) 
@@ -185,9 +186,10 @@ class LogisticRegression():
         # initialize error
         prev_loss = self.cross_entropy_loss()
         initial_loss = prev_loss
-        losses = []
+        losses = [] # will make part of the object
         
         if verbose: 
+            # display training progress
             for k in tqdm(range(epochs), desc="\nTraining...") : 
                 
                 grad = alpha*self.gradient() # calculate gradient   
@@ -231,8 +233,24 @@ class LogisticRegression():
         print("Initial loss: {}".format(initial_loss)) 
         print("Final loss: {}".format(final_loss))
         
-        return final_loss, losses
+        self.last_train_losses = losses
         
+        return final_loss        
+    
+    
+    def plot_training_loss(self): 
+        """
+        Plots all the losses generated during training loss
+        """ 
+        x = range(len(self.last_train_losses)) 
+        y = self.last_train_losses 
+        plt.figure() 
+        plt.plot(x,y, label = "Training loss") 
+        plt.xlabel("Epochs") 
+        plt.ylabel("Loss") 
+        plt.title("Training loss through time")
+        plt.legend() 
+        plt.show() 
     
     def fit(self, X,y,alpha=0.02, threshold=0.001, epochs=100, auto_alpha=0.99, verbose=False): 
         """
