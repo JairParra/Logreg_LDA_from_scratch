@@ -80,9 +80,12 @@ red_wine_df_stats = red_wine_df.drop('quality', axis=1).describe()
 
 # Label distribution plot
 sns.countplot(red_wine_df['quality'])
+plt.savefig('../figs/redwine_countplot.png')
 
 # Features pairplot
 sns.pairplot(red_wine_df.drop('quality', axis= 1), diag_kind='kde')
+plt.savefig('../figs/redwine_pairplot.png')
+
 
 
 ## 2.2 Load the breast cancer dataset 
@@ -137,10 +140,13 @@ print("cancer data 'Malignant' counts: ", cancer_df['Class'][cancer_df['Class'] 
 cancer_df_stats = cancer_df.drop('Class', axis=1).describe()
 
 # Labels distribution plot 
-sns.countplot(cancer_df['Class'])
+fig = sns.countplot(cancer_df['Class'])
+plt.title('Cancer dataset Class countplot')
+plt.savefig('../figs/cancer_countplot.png')
 
 # Features pairplot
 sns.pairplot(cancer_df.drop('Class',axis=1), diag_kind='kde')
+plt.savegif('../figs/cancer_pariplot.png')
 
 # Since the all the features seem to lie in similar ranges, we will not
 # normalize them. 
@@ -175,8 +181,7 @@ y_cancer = cancer_df['Class']
 
 ### 3. Helper Functions ### 
 
-def train_test_split(X,y, train_size=0.8, test_size=0.2, random_state=42): 
-    
+def train_test_split(X,y, train_size=0.8, test_size=0.2, random_state=42):   
     np.random.seed(random_state)
     
     print("Not implemented")
@@ -308,13 +313,12 @@ class LogisticRegression():
             else: 
                 total_loss.append(1*math.log(1-sigm_wTx + 0.0001))
             
-        if verbose: 
-            print("Loss array: \n") 
-            print(total_loss)
             
         loss = np.sum(np.array(total_loss))
-        print("Model loss: ", loss)
         
+        if verbose: 
+            print("Model loss: ", loss)
+
         return loss
     
     def gradient(self):
@@ -335,44 +339,60 @@ class LogisticRegression():
             
         return grad.reshape((len(grad),1))
     
-    def train(self, alpha=0.002, threshold=0.001, epochs=100, auto_alpha=0.99): 
+    def train(self, alpha=0.002, threshold=0.001, epochs=100, auto_alpha=0.99, verbose=True): 
         
         # initialize error
-        prev_error = self.cross_entropy_loss()
-        initial_error = prev_error
-        print("Initial loss: " , prev_error)
+        prev_loss = self.cross_entropy_loss()
+        initial_loss = prev_loss
         
-        for k in tqdm(range(epochs), desc="\nTraining...") : 
+        if verbose: 
+            for k in tqdm(range(epochs), desc="\nTraining...") : 
+                
+                grad = alpha*self.gradient() # calculate gradient   
+                temp = np.add(self.w, grad) # get weights update
+                self.w = temp # update weights
+                loss = self.cross_entropy_loss() # calculate current error
+                
+                print("\nEpoch {}".format(k+1))
+                print("Cross-entropy loss: %.2f" % (loss) )
+                            
+                if abs(loss-prev_loss) < threshold: 
+                    break
+                
+                prev_loss = loss
+                alpha = auto_alpha*alpha
+                
+        else: 
+            for k in range(epochs): 
+                
+                grad = alpha*self.gradient() # calculate gradient   
+                temp = np.add(self.w, grad) # get weights update
+                self.w = temp # update weights
+                loss = self.cross_entropy_loss() # calculate current error
+                            
+                if abs(loss-prev_loss) < threshold: 
+                    break
+                
+                prev_loss = loss
+                alpha = auto_alpha*alpha
             
-            grad = alpha*self.gradient() # calculate gradient   
-            temp = np.add(self.w, grad) # get weights update
-            self.w = temp # update weights
-            error = self.cross_entropy_loss() # calculate current error
-            
-            print("\nEpoch {}".format(k+1))
-            print("Cross-entropy loss: %.2f" % (error) )
-                        
-            if abs(error-prev_error) < threshold: 
-                break
-            
-            prev_error = error 
-            alpha = auto_alpha*alpha
             
         print("---Terminated---")  
         
-        print("Initial loss: {}".format(initial_error)) 
-        print("Final loss: {}".format(prev_error))
+        final_loss = prev_loss
+        print("Initial loss: {}".format(initial_loss)) 
+        print("Final loss: {}".format(final_loss))
+        
+        return final_loss
         
     
-    def fit(self, X,y,alpha=0.02, threshold=0.001, epochs=100): 
+    def fit(self, X,y,alpha=0.02, threshold=0.001, epochs=100, auto_alpha=0.99, verbose=False): 
         """
         Initializes the model with the input parameters 
         and trains
         """
         self.__init__(X,y) # Initialize with input 
-        self.train(self, alpha, threshold, epochs)
-        
-        
+        self.train(alpha, threshold, epochs, auto_alpha, verbose)
         
     
 
@@ -380,40 +400,62 @@ class LogisticRegression():
         
 # subset for test
 X_new = X_redwine[0:10,:] # matrix
-
-y_new = y_redwine[0:10]
+y_new = y_redwine[0:10] # vector 
 
 # new vector(test) 
 x_new = X_new[0:1,:] # vector
 x_new.shape
 
         
-        
 # Way # 1
         
-obj = LogisticRegression(X_redwine, y_redwine) # initialize 
-obj.sigmoid(4) # calculate sigmoid 
-obj.cross_entropy_loss(verbose=False) # calculate loss 
-obj.gradient() # get gradient
-obj.train(alpha=0.002, threshold=0.001, epochs=100, auto_alpha=0.99) # run gradient descent and train the model 
-obj.predict_probabilities(X_new) # predict vector of probablities
-y_pred = obj.predict(X_new) # predict classifications
+logreg = LogisticRegression(X_redwine, y_redwine) # initialize 
+logreg.sigmoid(4) # calculate sigmoid 
+logreg.cross_entropy_loss(verbose=False) # calculate loss 
+logreg.gradient() # get gradient
+logreg.train(alpha=0.002, threshold=0.001, epochs=100, auto_alpha=0.99, verbose=False) # run gradient descent and train the model 
+logreg.predict_probabilities(X_new) # predict vector of probablities
+y_pred = logreg.predict(X_new) # predict classifications
 print("y_pred ", y_pred)
 print("y_new ", list(y_new))
 print("toy accuracy: {}%".format( (y_pred == y_new).sum() / len(y_pred)*100 ))
 
 
 # Way # 2
+logreg = LogisticRegression() # instantiate 
+logreg.fit(X_redwine,y_redwine,             # fit the model and train 
+           alpha=0.002, threshold=0.001,
+           epochs=100, auto_alpha=0.99, 
+           verbose=False)
+final_loss = logreg.cross_entropy_loss()    # obtain the final loss after training
+logreg.predict_probabilities(X_new) # can check probabilities of the model 
+y_pred = logreg.predict(X_new) # predict classifications
+print("y_pred ", y_pred)
+print("y_new ", list(y_new))
+print("toy accuracy: {}%".format( (y_pred == y_new).sum() / len(y_pred)*100 ))
 
 
+# Parameter search algorithm: 
+alphas = alpha = [0.001, 0.002, 0.003, 0.004]
 
-# new vector(test) 
-X_new = X_new[0:1,:]
-shape = X_new.shape
-
-obj.fit(X_redwine,y_redwine)
-
-# subset for test
-X_new = X_redwine[0:10,:]
-y_new = y_redwine[0:10]
-obj = LogisticRegression()
+losses = {}
+accuracies = {}
+# for each option for alpha 
+for alpha in alphas: 
+    # get the name of the alpha used
+    model_name = "logreg_alpha{}: \n".format(alpha)
+    # instantiate the model
+    model = LogisticRegression() 
+    # fit and train the model with the appropriate X and y
+    model.fit(X_redwine, y_redwine) 
+    # obtain the loss of the model 
+    loss = model.cross_entropy_loss() 
+    # store in the losses dictionary  
+    losses[model_name] = loss 
+    # obtain the predictions on (new) test validation set
+    y_pred = model.predict(X_new)
+    # calculate accuracy 
+    acc = (y_pred == y_new).sum() / len(y_pred)*100 
+    # store in accuracies dictionary 
+    accuracies[model_name] = acc
+    print("\n")
