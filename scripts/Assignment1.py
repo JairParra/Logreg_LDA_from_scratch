@@ -245,7 +245,7 @@ logreg.predict_probabilities(X_new) # can check probabilities of the model
 y_pred = logreg.predict(X_new) # predict classifications
 print("y_pred ", y_pred)
 print("y_new ", list(y_new))
-print("toy accuracy: {}%".format( (y_pred == y_new).sum() / len(y_pred)*100 ))
+evaluate_acc(logreg, X_new, y_new, verbose=True)
 
 # We can plot the training loss! 
 logreg.plot_training_loss()
@@ -345,4 +345,6 @@ def kfold_CV_search(algorithm, X, y, k = 5, params={}, random_state=42):
 
     return X 
     
-   
+    
+    
+    
