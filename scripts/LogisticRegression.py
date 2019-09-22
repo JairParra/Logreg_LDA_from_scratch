@@ -142,7 +142,7 @@ class LogisticRegression():
                 total_loss.append(1*math.log(1-sigm_wTx + 0.0001))
             
             
-        loss = np.sum(np.array(total_loss))
+        loss = -1*np.sum(np.array(total_loss))
         
         if verbose: 
             print("Model loss: ", loss)
@@ -168,10 +168,24 @@ class LogisticRegression():
         return grad.reshape((len(grad),1))
     
     def train(self, alpha=0.002, threshold=0.001, epochs=100, auto_alpha=0.99, verbose=True): 
+        """
+        Trains the model using the fitted feature matrix X and target vector y using 
+        gradient descent. 
+        params: 
+            @ alpha: learning rate 
+            @ threshold: threshold used in early stopping 
+            @ epochs: number of (maximum) iterations for training 
+            @ auto_alpha: auto_adjusts the learning rate in every iteration 
+            @ verbose: display training progress
+        returns: 
+            @ final_loss 
+            @ losses: list of all loss values during training
+        """
         
         # initialize error
         prev_loss = self.cross_entropy_loss()
         initial_loss = prev_loss
+        losses = []
         
         if verbose: 
             for k in tqdm(range(epochs), desc="\nTraining...") : 
@@ -184,8 +198,11 @@ class LogisticRegression():
                 print("\nEpoch {}".format(k+1))
                 print("Cross-entropy loss: %.2f" % (loss) )
                             
+                # early stopping
                 if abs(loss-prev_loss) < threshold: 
                     break
+                
+                losses.append(loss)
                 
                 prev_loss = loss
                 alpha = auto_alpha*alpha
@@ -198,8 +215,11 @@ class LogisticRegression():
                 self.w = temp # update weights
                 loss = self.cross_entropy_loss() # calculate current error
                             
+                # early stopping
                 if abs(loss-prev_loss) < threshold: 
                     break
+                
+                losses.append(loss)
                 
                 prev_loss = loss
                 alpha = auto_alpha*alpha
@@ -211,7 +231,7 @@ class LogisticRegression():
         print("Initial loss: {}".format(initial_loss)) 
         print("Final loss: {}".format(final_loss))
         
-        return final_loss
+        return final_loss, losses
         
     
     def fit(self, X,y,alpha=0.02, threshold=0.001, epochs=100, auto_alpha=0.99, verbose=False): 
