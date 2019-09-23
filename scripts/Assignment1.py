@@ -182,10 +182,28 @@ X_cancer = cancer_df.drop('Class', axis=1).values.astype('float64')
 y_cancer = cancer_df['Class']
 
 
-
 # *****************************************************************************
 
-### 4. Util functions ### 
+### 3. Util functions ### 
+
+def shuffle_data(X,y, random_state=42): 
+    """
+    Randomly shuffles the input targets and features by joining them into 
+    a dataframe, shuffling it and then recovering back the pairwise 
+    shuffled inputs. 
+    """
+    
+    np.random.seed(random_state) # initialize seed
+    X = pd.DataFrame(X)  # convert to dataframe
+    y = pd.DataFrame(y)
+    df = pd.concat([X,y], axis=1) # concatenate into 1 
+    df = df.iloc[np.random.permutation(len(df))] # shuffle randomly
+    X = df.iloc[:,:-1]  # recover feature set
+    y = np.array(df.iloc[:,-1:]) # recover target vector
+    y = y.reshape((y.shape[0],)) # convert back to series format
+    
+    return X,y
+
 
 def evaluate_acc(model, X_test, y_test, verbose=True): 
     """
@@ -216,8 +234,8 @@ def cross_validation(input_model, X,y,folds=5, shuffle=True, random_state = 42,
 
     
     if shuffle: 
-        X = X.iloc[np.random.permutation(len(X))] # randomly shuffle the data        
-    
+        X, y = shuffle_data(X,y)
+
     # for each split
     for k in range(folds): 
                 
@@ -262,18 +280,19 @@ def cross_validation(input_model, X,y,folds=5, shuffle=True, random_state = 42,
             # append to the accs list 
             accuracies[k] = acc
             
+        mean_acc = np.mean(accuracies)
             
         print("accuracies: ", accuracies) 
-        print("\n mean accuracy: ", np.mean(accuracies))
+        print("\n mean accuracy: ", mean_acc)
         
     return np.mean(accuracies) 
         
 
 # *****************************************************************************
     
-### 3. Running Logistic Regression Model Experiments ### 
+### 4. Running Tests and Experiments ### 
     
-## 3.1 : Testing different learning rates for Logistic Regression 
+## 4.1 : Testing different learning rates for Logistic Regression 
     
 alphas = [1, 0.2, 0.02, 0.002, 0.0002]
 
@@ -292,7 +311,7 @@ def test_alphas(X, y, alphas=[]):
     for alpha in alphas: 
         name = "cv_acc_alpha_{}".format(alpha) 
         accuracies[name] = cross_validation(LogisticRegression, X, y, 
-                 folds=5, shuffle=False, random_state = 42, 
+                 folds=5, shuffle=True, random_state = 42, 
                      alpha_rate=alpha, auto_alpha=0.99, epochs=100)
         
     return accuracies 
@@ -300,40 +319,44 @@ def test_alphas(X, y, alphas=[]):
 # Redwine dataset 
 redwine_accs = test_alphas(X_redwine, y_redwine, alphas=alphas) 
 print("Redwine accuracies: ", redwine_accs)
+"""　Best: alpha 0.002 -> 74.35% """
 
 # Cancer dataset 
 cancer_accs = test_alphas(X_cancer, y_cancer, alphas=alphas) 
 print("Cancer accuracies: ", cancer_accs)
+"""　Best: alpha 0.02 -> 96.92% """
 
+## 4.2 Comparing best LogReg accuracy vs. best LDA accuracy 
 
-# We find that alpha = 0.002 yields the best accuracy for both datasets.  
-
-## 3.2 Comparing best LogReg accuracy vs. best LDA accuracy 
-
-
-# 3.2.1 Redwine Dataset 
+# 4.2.1 Redwine Dataset 
 
 # Logistic Regression 
-cross_validation(LogisticRegression, X_redwine, y_redwine, shuffle=False, 
+cross_validation(LogisticRegression, X_redwine, y_redwine, shuffle=True, 
                  folds=5, alpha_rate=0.002, auto_alpha=0.99, epochs=100) 
 """ 73.29% """
 
 # LDA 
 # ----------------------------------# 
 
-# 3.2.2 Cancer Dataset 
-cross_validation(LogisticRegression, X_redwine, y_redwine, shuffle=False, 
-                 folds=5, alpha_rate=0.002, auto_alpha=0.99, epochs=100) 
+# 4.2.2 Cancer Dataset 
+
+# Logistic Regression 
+cross_validation(LogisticRegression, X_cancer, y_cancer, shuffle=True, 
+                 folds=5, alpha_rate=0.02, auto_alpha=0.99, epochs=100) 
+"""96.92%"""
+
+# LDA 
 
 
 
-## 3.1 Comparing Log Reg and LDA running times
+
+## 4.3 Comparing Log Reg and LDA running times
 
 
 # Logistic Regression 
 t0 = time.time() 
 logreg = LogisticRegression() # instantiate 
-logreg.fit(X_redwine,y_redwine,             # fit the model and train 
+logreg.fit(X_redwine,y_redwine, # fit and train the model 
            alpha=0.002,  # learning rate
            threshold=0.001, # early stopping threshold
            epochs=100,  # max number of epochs 
@@ -355,4 +378,23 @@ print("LDA running time: {} s".format(logreg_time))
 
 
 ## 3.2 Improving the accuracy of the wine dataset 
+
+# Copy the dataset
+new_X_redwine = X_redwine.copy()
+
+# All add interaction features
+for col1 in T(X_redwine): 
+    for col2 in T(X_redwine): 
+        new_feat = np.multiply(col1, col2) 
+        new_X_redwine = np.c_[new_X_redwine, new_feat]
+
+# Train and test the model with the new feature set
+cross_validation(LogisticRegression, new_X_redwine, y_redwine, 
+                 folds = 5,
+                 shuffle=True , 
+                 random_state = 42, 
+                 alpha_rate=0.002, 
+                 auto_alpha=0.99, 
+                 epochs=200
+                 )
 
