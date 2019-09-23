@@ -18,11 +18,8 @@ from tqdm import tqdm # to display progress bar
 from numpy import transpose as T # because it is a pain in the ass
 
 
-
 class LogisticRegression(): 
-    
-    np.random.seed(42) 
-    
+        
     def __init__(self,X=np.array([[0]]), y=np.array([0]) ): 
         """
         X: (n x m) matrix of features with n observations 
@@ -30,6 +27,8 @@ class LogisticRegression():
         y: (n x 1) vector of targets (as Series)
         
         """     
+        np.random.seed(42) 
+
         if X[0,0] == 0 and y[0] == 0: 
             print("Default initialization") 
             
@@ -77,7 +76,7 @@ class LogisticRegression():
                 message += "\nInput is has {} features but model has {} features".format(len(X_new), self.m - 1)
                 raise Exception(message)
             else: 
-                print("HERE")
+                print("vector")
                 x = np.insert(X_new, 0, 1) # insert an extra one at the beginning
                 wTx = float(np.matmul(T(self.w), x)) 
                 sigm_wTx = self.sigmoid(wTx) 
@@ -102,29 +101,31 @@ class LogisticRegression():
                 # over each of its rows, which comes out as
                 # a column vector 
                 for i in range(len(X_new)): 
-                    x = X_new[i] # row = example
-                    wTx = float(np.matmul(T(self.w),x)) # w^Tx 
+                    x_i = X_new[i] # row = example
+                    wTx = float(np.matmul(T(self.w),x_i)) # w^Tx 
                     sigm_wTx = self.sigmoid(wTx)
                     pred_probs[i] = sigm_wTx
                     
                 return pred_probs
             
             
-    def predict(self, X_new): 
+    def predict(self, X_new, verbose=False): 
         """
         Returns an array of predictions for the 
         new input. 
         """
         # get predictions 
         probs = self.predict_probabilities(X_new) 
+        if verbose: 
+            print(probs)
         
         # Use decision boundary
-        return [1 if prob >= 0.5 else 0 for prob in probs]
+        return [1 if prob > 0.5 else 0 for prob in probs]
                 
     # loss function
     def cross_entropy_loss(self, verbose=False): 
         
-        total_loss = []
+        losses = []
         # for each datapoint
         for i in range(self.n): 
             x_i = self.X[i] 
@@ -138,17 +139,19 @@ class LogisticRegression():
                 print("log(sigm_wTx) ", math.log(sigm_wTx))
             
             if y_i == 1:
-                total_loss.append(-1*math.log(sigm_wTx + 0.0001)) 
+                losses.append(math.log(sigm_wTx + 0.0001)) 
             else: 
-                total_loss.append(1*math.log(1-sigm_wTx + 0.0001))
+                losses.append(math.log(1 - sigm_wTx + 0.0001))
             
             
-        loss = -1*np.sum(np.array(total_loss))
+        total_loss = -1*np.sum(np.array(losses))
+        
         
         if verbose: 
-            print("Model loss: ", loss)
+            print(losses)
+            print("Model loss: ", total_loss)
 
-        return loss
+        return total_loss
     
     def gradient(self):
         """ 
@@ -206,6 +209,7 @@ class LogisticRegression():
                 
                 losses.append(loss)
                 
+                # update last loss and alpha
                 prev_loss = loss
                 alpha = auto_alpha*alpha
                 
@@ -223,6 +227,7 @@ class LogisticRegression():
                 
                 losses.append(loss)
                 
+                # update last loss and alpha 
                 prev_loss = loss
                 alpha = auto_alpha*alpha
             
@@ -233,6 +238,7 @@ class LogisticRegression():
         print("Initial loss: {}".format(initial_loss)) 
         print("Final loss: {}".format(final_loss))
         
+        # to graph the training loss 
         self.last_train_losses = losses
         
         return final_loss        
@@ -259,3 +265,4 @@ class LogisticRegression():
         """
         self.__init__(X,y) # Initialize with input 
         self.train(alpha, threshold, epochs, auto_alpha, verbose)
+
