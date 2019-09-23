@@ -297,21 +297,48 @@ def test_alphas(X, y, alphas=[]):
         
     return accuracies 
         
+# Redwine dataset 
+redwine_accs = test_alphas(X_redwine, y_redwine, alphas=alphas) 
+print("Redwine accuracies: ", redwine_accs)
 
-accs = test_alphas(X_redwine, y_redwine, alphas=alphas) 
-print(accs)
+# Cancer dataset 
+cancer_accs = test_alphas(X_cancer, y_cancer, alphas=alphas) 
+print("Cancer accuracies: ", cancer_accs)
 
-# We find that alpha = 0.002 yields the best accuracy. 
+
+# We find that alpha = 0.002 yields the best accuracy for both datasets.  
+
+## 3.2 Comparing best LogReg accuracy vs. best LDA accuracy 
+
+
+# 3.2.1 Redwine Dataset 
+
+# Logistic Regression 
+cross_validation(LogisticRegression, X_redwine, y_redwine, shuffle=False, 
+                 folds=5, alpha_rate=0.002, auto_alpha=0.99, epochs=100) 
+""" 73.29% """
+
+# LDA 
+# ----------------------------------# 
+
+# 3.2.2 Cancer Dataset 
+cross_validation(LogisticRegression, X_redwine, y_redwine, shuffle=False, 
+                 folds=5, alpha_rate=0.002, auto_alpha=0.99, epochs=100) 
+
+
 
 ## 3.1 Comparing Log Reg and LDA running times
+
 
 # Logistic Regression 
 t0 = time.time() 
 logreg = LogisticRegression() # instantiate 
 logreg.fit(X_redwine,y_redwine,             # fit the model and train 
-           alpha=0.002, threshold=0.001,
-           epochs=100, auto_alpha=0.99, 
-           verbose=False)
+           alpha=0.002,  # learning rate
+           threshold=0.001, # early stopping threshold
+           epochs=100,  # max number of epochs 
+           auto_alpha=0.99,  # alpha rate 
+           verbose=True)
 t1 = time.time() 
 logreg_time = t1 - t0 
 
@@ -327,7 +354,8 @@ print("Logistic regression running time: {} s".format(logreg_time))
 print("LDA running time: {} s".format(logreg_time))
 
 
+## 3.2 Improving the accuracy of the wine dataset 
 
-    
+
 
 
