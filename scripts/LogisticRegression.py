@@ -265,4 +265,6 @@ class LogisticRegression():
         """
         self.__init__(X,y) # Initialize with input 
         self.train(alpha, threshold, epochs, auto_alpha, verbose)
+        if verbose: 
+            self.plot_training_loss()
 
