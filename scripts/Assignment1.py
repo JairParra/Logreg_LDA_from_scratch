@@ -25,6 +25,7 @@ Created on Mon Sep 16 15:57:52 2019
 
 ### 1. Imports ### 
 
+import time
 import math
 import scipy
 import random
@@ -34,6 +35,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns # easier & prettier visualization 
 from tqdm import tqdm # to display progress bar
 from numpy import transpose as T # because it is a pain in the ass
+from LogisticRegression import LogisticRegression # the class we implemented
 sns.set()
 
 # *****************************************************************************
@@ -133,6 +135,9 @@ cancer_df.loc[cancer_df['Class'] == 2, 'Class' ] = 1 # benign
 for column in cancer_df.columns[:-1]: 
     print(column)
     cancer_df[column] = pd.to_numeric(cancer_df[column])
+    
+# normalize columbns
+normalize_df(cancer_df, columns = cancer_df.columns[:-1])
 
 # Print shape and obtain statistics. 
 print("cancer_df shape: {}".format(cancer_df.shape)) 
@@ -180,7 +185,7 @@ y_cancer = cancer_df['Class']
 
 # *****************************************************************************
 
-### 4. Helper functions ### 
+### 4. Util functions ### 
 
 def evaluate_acc(model, X_test, y_test, verbose=True): 
     """
@@ -196,106 +201,26 @@ def evaluate_acc(model, X_test, y_test, verbose=True):
     
     if verbose: 
         print("y_pred :{}".format(y_pred)) 
-        print("y_new :".format(list(y_new)))
+        print("y_new :".format(list(y_pred)))
         print("Accuracy: {}".format(acc))
 
-    return acc         
-
-# *****************************************************************************
-
-### 3. TESTING LOGISITC REGRESSION ### 
-
-# import the class from the script
-from LogisticRegression import LogisticRegression
+    return acc      
 
 
-        
-# subset for test
-X_new = X_redwine[0:10,:] # matrix
-y_new = y_redwine[0:10] # vector 
-
-# new vector(test) 
-x_new = X_new[0:1,:] # vector
-x_new.shape
-
-        
-# Way # 1
-        
-logreg = LogisticRegression(X_redwine, y_redwine) # initialize 
-logreg.cross_entropy_loss(verbose=False) # calculate loss 
-logreg.gradient() # get gradient
-final_loss = logreg.train(alpha=0.002, threshold=0.001, epochs=100, auto_alpha=0.99, verbose=False) # run gradient descent and train the model 
-logreg.predict_probabilities(X_new) # predict vector of probablities
-y_pred = logreg.predict(X_new) # predict classifications
-print("y_pred ", y_pred)
-print("y_new ", list(y_new))
-evaluate_acc(logreg, X_new, y_new, verbose=True)
-
-
-
-
-# Way # 2
-logreg = LogisticRegression() # instantiate 
-logreg.fit(X_redwine,y_redwine,             # fit the model and train 
-           alpha=0.002, threshold=0.001,
-           epochs=100, auto_alpha=0.99, 
-           verbose=False)
-final_loss = logreg.cross_entropy_loss()    # obtain the final loss after training
-logreg.predict_probabilities(X_new) # can check probabilities of the model 
-y_pred = logreg.predict(X_new) # predict classifications
-print("y_pred ", y_pred)
-print("y_new ", list(y_new))
-evaluate_acc(logreg, X_new, y_new, verbose=True)
-
-# We can plot the training loss! 
-logreg.plot_training_loss()
-
-
-# Parameter search algorithm: 
-alphas = [0.002, 0.01, 0.05, 0.1]
-
-losses = {}
-accuracies = {}
-# for each option for alpha 
-for alpha in alphas: 
-    # get the name of the alpha used
-    model_name = "logreg_alpha_{}: \n".format(alpha)
-    # instantiate the model
-    model = LogisticRegression() 
-    # fit and train the model with the appropriate X and y
-    model.fit(X_redwine, y_redwine) 
-    # obtain the loss of the model 
-    loss = model.cross_entropy_loss() 
-    # store in the losses dictionary  
-    losses[model_name] = loss 
-    # obtain the predictions on (new) test validation set
-    y_pred = model.predict(X_new)
-    # calculate accuracy 
-    acc = (y_pred == y_new).sum() / len(y_pred)*100 
-    # store in accuracies dictionary 
-    accuracies[model_name] = acc
-    print("\n")
+def cross_validation(input_model, X,y,folds=5, shuffle=True, random_state = 42, 
+                     alpha_rate=0.002, auto_alpha=0.99, epochs=100, verbose=False):
     
+    np.random.seed(random_state)
+    X = pd.DataFrame(X)  # convert to dataframe
+    accuracies = np.zeros(folds)
 
-# ********************************************************************************
     
-### 4. Testing LDA ### 
+    if shuffle: 
+        X = X.iloc[np.random.permutation(len(X))] # randomly shuffle the data        
     
-# PLEASE INPUT LDA TESTS IN HERE ONCE LDA IS COMPLETE  
-    
-# ********************************************************************************
-    
-### 5. Cross validation, parameter search, evaluation and performance ### 
-    
-
-X = np.random.rand(10,3) 
-X = pd.DataFrame(X)  
-    
-def cross_split(X,folds=5): 
-    
-    # for each split"
+    # for each split
     for k in range(folds): 
-        
+                
         # display split number
         print("\nSplit {}\n".format(k+1))
         
@@ -303,48 +228,106 @@ def cross_split(X,folds=5):
         upper = int(split*(k+1)) # obtain upper index
         lower = max(int(upper - split),0) # obtain lower index 
         
-        print("lower = {}".format(lower))
-        print("upper = {}".format(upper)) 
+        X_lower = X.iloc[:lower,:]  # obtain lower feature train set
+        X_val = X.iloc[lower:upper,:]  # obtain val feature set
+        X_upper = X.iloc[upper:,:]  # obtain upper feature train set
         
-        X_lower = X.iloc[:lower,:]  # obtain lower train set
-        X_val = X.iloc[lower:upper,:]  # obtain validation set 
-        X_upper = X.iloc[upper:,:]  # obtain upper train set
+        y_lower = y[:lower] # obtain lower targets 
+        y_val = y[lower:upper]  # obtain validation targets
+        y_upper = y[upper:] # obtain upper targets 
         
         # stack lower train and upper train together
-        X_train = X_lower.append(X_upper) 
+        X_train = np.array(X_lower.append(X_upper))
+        y_train = np.r_[y_lower, y_upper]
         
-        print("X_train: ", X_train) 
-        print("\nX_val :{} \n".format(X_val))
+        # instantiate the model 
+        model = input_model()
+        
+        print("Type X_train: ", type(X_train))
+        print("shape X_train: ", X_train.shape)
+        print("Type X_train: ", type(y_train))
+        print("shape X_train: ", y_train.shape)
+        
+        
+        # Test for instance of Logistic Regression 
+        if isinstance(model, LogisticRegression):         
+            # fit (and train) the model 
+            model.fit(X_train, y_train, alpha=alpha_rate, epochs = epochs, 
+                      threshold= 0.01, auto_alpha=auto_alpha, verbose=verbose) 
+            
+#            model.plot_training_loss()
+            
+            # obtain accuracy  
+            acc = evaluate_acc(model, X_val, y_val)
+            # append to the accs list 
+            accuracies[k] = acc
+            
+            
+        print("accuracies: ", accuracies) 
+        print("\n mean accuracy: ", np.mean(accuracies))
+        
+    return np.mean(accuracies) 
         
 
-
-def kfold_CV_search(algorithm, X, y, k = 5, params={}, random_state=42): 
-    """ 
-    Performs a k-fold Cross-validation search testing the given parameters, 
-    which have to be input as a dictionary, where the keys are the 
-    values of the parameters to test and the values are lists which include 
-    a range of parameters to test. 
+# *****************************************************************************
     
-    params = {"alpha" :[0.001, 0.002, 0.003], 
-              "threshold" : [0.001, 0.01, 0.1], 
-              "auto_alpha" : [0.99, 0.95, 0.90]
-               } 
+### 3. Running Logistic Regression Model Experiments ### 
+    
+## 3.1 : Testing different learning rates for Logistic Regression 
+    
+alphas = [1, 0.2, 0.02, 0.002, 0.0002]
 
-    params: 
-        @ algorithm: an instance of a classification algorithm (log reg) 
-        @ X: input training features data
-        @ y: input targets data  
-        @ k: number of folds to perform 
-        @ params: dictionary of parameters to test
-        @ random_state: seed for the random 
+def test_alphas(X, y, alphas=[]): 
     """
+    Runs cross-validation using different input alphas. 
+    params: 
+        @ X: matrix of features
+        @ y: target vector
+        @ alphas: list of different learning rates to try
+    returns: 
+        @ accuracies: a dictionary with the accuracies for each alpha
+    """
+    accuracies = {}
     
-    random_state = random_state 
-    X = pd.DataFrame(X) 
-    X = X.iloc[np.random.permutation(len(X))] # randomly shuffle the data 
+    for alpha in alphas: 
+        name = "cv_acc_alpha_{}".format(alpha) 
+        accuracies[name] = cross_validation(LogisticRegression, X, y, 
+                 folds=5, shuffle=False, random_state = 42, 
+                     alpha_rate=alpha, auto_alpha=0.99, epochs=100)
+        
+    return accuracies 
+        
 
-    return X 
+accs = test_alphas(X_redwine, y_redwine, alphas=alphas) 
+print(accs)
+
+# We find that alpha = 0.002 yields the best accuracy. 
+
+## 3.1 Comparing Log Reg and LDA running times
+
+# Logistic Regression 
+t0 = time.time() 
+logreg = LogisticRegression() # instantiate 
+logreg.fit(X_redwine,y_redwine,             # fit the model and train 
+           alpha=0.002, threshold=0.001,
+           epochs=100, auto_alpha=0.99, 
+           verbose=False)
+t1 = time.time() 
+logreg_time = t1 - t0 
+
+
+# LDA 
+t0 = time.time() 
+# LDA model running goes here 
+t1 = time.time() 
+LDA_time =  t1 - t1 
     
+# Compare    
+print("Logistic regression running time: {} s".format(logreg_time))
+print("LDA running time: {} s".format(logreg_time))
+
+
+
     
-    
-    
+
+
