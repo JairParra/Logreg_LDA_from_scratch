@@ -356,6 +356,3 @@ print("LDA running time: {} s".format(logreg_time))
 
 ## 3.2 Improving the accuracy of the wine dataset 
 
-
-
-
