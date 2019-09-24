@@ -34,6 +34,7 @@ import seaborn as sns # easier & prettier visualization
 from tqdm import tqdm # to display progress bar
 from numpy import transpose as T # because it is a pain in the ass
 from LogisticRegression import LogisticRegression # the class we implemented
+from LDA import LDA
 from scipy.stats import stats
 sns.set()
 
@@ -213,6 +214,7 @@ def evaluate_acc(model, X_test, y_test, verbose=True):
         @ model: the input classification model 
         @ X_test: Input 
     """
+    
     y_pred = model.predict(X_test) 
     acc = (y_pred == y_test).sum() / len(y_pred) * 100
     
@@ -274,7 +276,7 @@ def cross_validation(input_model, X,y,folds=5, shuffle=True, random_state = 42,
 #            model.plot_training_loss()
             
             # obtain accuracy  
-            acc = evaluate_acc(model, X_val, y_val)
+            acc = evaluate_acc(model, X_val, y_val, verbose)
             # append to the accs list 
             accuracies[k] = acc
             
@@ -348,6 +350,7 @@ cross_validation(LogisticRegression, X_cancer, y_cancer, shuffle=True,
 
 
 
+
 ## 4.3 Comparing Log Reg and LDA running times
 
 
@@ -362,6 +365,8 @@ logreg.fit(X_redwine,y_redwine, # fit and train the model
            verbose=True)
 t1 = time.time() 
 logreg_time = t1 - t0 
+
+
 
 
 # LDA 
@@ -456,7 +461,7 @@ e_accs =  CV_search(X_redwine_e, y_redwine,
 # Now we will try to test every possible subset with the same parameter
 # configurations. 
 
-def best_subset(X,y): 
+def best_subset(X,y, verbose=False): 
     
     new_X = X.copy() # create a copy 
     new_X = pd.DataFrame(X) # convert to dataframe 
@@ -482,8 +487,8 @@ def best_subset(X,y):
                 # append the column to a new data 
                 X_subset[col_num] = new_X[col_num]
                                 
-                
-            print(X_subset)
+            if verbose: 
+                print(X_subset)
             # fit_train a model and get CV accuracy
             acc = cross_validation(LogisticRegression, 
                                    X_subset, y_redwine, 
@@ -491,7 +496,8 @@ def best_subset(X,y):
                                    folds=5, 
                                    alpha_rate=0.002, 
                                    auto_alpha=0.99, 
-                                   epochs=150) 
+                                   epochs=150,
+                                   verbose=verbose) 
             
             # store that accuracy 
             accuracies[model_name] = acc
@@ -502,4 +508,29 @@ def best_subset(X,y):
 
 # accuracies for all possible subset of original dataset
 bes_origin_accs = best_subset(X_redwine, y_redwine)
+
+
+            
+            
+    
+        
+                
+
+
+
+
+
+# *****************************************************************************
+
+# LDA TESTS
+
+X_test = X_redwine[0:100,:]
+y_test = y_redwine[0:100]
+evaluate_acc(logreg, X_test, y_test, verbose=True) # example how should work
+
+# test 7:33 pm tue
+lda = LDA(X_test, y_test) 
+lda.fit()
+print(len(lda.predict(X_test)))
+evaluate_acc(lda, X_test, y_test, verbose=True)
 
