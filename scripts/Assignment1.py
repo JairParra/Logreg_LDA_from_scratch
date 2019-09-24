@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 Created on Mon Sep 16 15:57:52 2019
-
 @ COMP 551: Applied Machine Learning (Winter 2019) 
 @ Mini-project 1 : Implementing Logistic Regression and LDA from scratch 
-
 # Team Members: 
 
 @ Hair Albeiro Parra Barrera 
@@ -13,9 +11,8 @@ Created on Mon Sep 16 15:57:52 2019
 @ Sun Gengyi 
 @ ID:  
     
-@ Name 3 
+@ Hao Shu
 @ ID: 
-
 """
 # *****************************************************************************
 
@@ -29,6 +26,7 @@ import time
 import math
 import scipy
 import random
+import itertools 
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt 
@@ -36,6 +34,7 @@ import seaborn as sns # easier & prettier visualization
 from tqdm import tqdm # to display progress bar
 from numpy import transpose as T # because it is a pain in the ass
 from LogisticRegression import LogisticRegression # the class we implemented
+from scipy.stats import stats
 sns.set()
 
 # *****************************************************************************
@@ -146,7 +145,7 @@ print("cancer data 'Malignant' counts: ", cancer_df['Class'][cancer_df['Class'] 
 cancer_df_stats = cancer_df.drop('Class', axis=1).describe()
 
 # Labels distribution plot 
-fig = sns.countplot(cancer_df['Class'])
+sns.countplot(cancer_df['Class'])
 plt.title('Cancer dataset Class countplot')
 plt.savefig('../figs/cancer_countplot.png')
 
@@ -261,10 +260,9 @@ def cross_validation(input_model, X,y,folds=5, shuffle=True, random_state = 42,
         # instantiate the model 
         model = input_model()
         
-        print("Type X_train: ", type(X_train))
-        print("shape X_train: ", X_train.shape)
-        print("Type X_train: ", type(y_train))
-        print("shape X_train: ", y_train.shape)
+        if verbose: 
+            print("shape X_train: ", X_train.shape)
+            print("shape y_train: ", y_train.shape)
         
         
         # Test for instance of Logistic Regression 
@@ -296,9 +294,9 @@ def cross_validation(input_model, X,y,folds=5, shuffle=True, random_state = 42,
     
 alphas = [1, 0.2, 0.02, 0.002, 0.0002]
 
-def test_alphas(X, y, alphas=[]): 
+def CV_search(X, y, alphas=[], epochs_list=[100], folds = 5): 
     """
-    Runs cross-validation using different input alphas. 
+    Runs cross-validation using different input alphas and epochs. 
     params: 
         @ X: matrix of features
         @ y: target vector
@@ -309,20 +307,21 @@ def test_alphas(X, y, alphas=[]):
     accuracies = {}
     
     for alpha in alphas: 
-        name = "cv_acc_alpha_{}".format(alpha) 
-        accuracies[name] = cross_validation(LogisticRegression, X, y, 
-                 folds=5, shuffle=True, random_state = 42, 
-                     alpha_rate=alpha, auto_alpha=0.99, epochs=100)
+        for epochs in epochs_list:
+            name = "cv_acc_alpha=_{}_epoch={}".format(alpha, epochs) 
+            accuracies[name] = cross_validation(LogisticRegression, X, y, 
+                     folds=folds, shuffle=True, random_state = 42, 
+                         alpha_rate=alpha, auto_alpha=0.99, epochs=epochs)
         
     return accuracies 
         
 # Redwine dataset 
-redwine_accs = test_alphas(X_redwine, y_redwine, alphas=alphas) 
+redwine_accs = CV_search(X_redwine, y_redwine, alphas=alphas) 
 print("Redwine accuracies: ", redwine_accs)
 """　Best: alpha 0.002 -> 74.35% """
 
 # Cancer dataset 
-cancer_accs = test_alphas(X_cancer, y_cancer, alphas=alphas) 
+cancer_accs = CV_search(X_cancer, y_cancer, alphas=alphas) 
 print("Cancer accuracies: ", cancer_accs)
 """　Best: alpha 0.02 -> 96.92% """
 
@@ -333,7 +332,7 @@ print("Cancer accuracies: ", cancer_accs)
 # Logistic Regression 
 cross_validation(LogisticRegression, X_redwine, y_redwine, shuffle=True, 
                  folds=5, alpha_rate=0.002, auto_alpha=0.99, epochs=100) 
-""" 73.29% """
+""" 74.35% """
 
 # LDA 
 # ----------------------------------# 
@@ -342,11 +341,10 @@ cross_validation(LogisticRegression, X_redwine, y_redwine, shuffle=True,
 
 # Logistic Regression 
 cross_validation(LogisticRegression, X_cancer, y_cancer, shuffle=True, 
-                 folds=5, alpha_rate=0.02, auto_alpha=0.99, epochs=100) 
+                 folds=5, alpha_rate=0.2, auto_alpha=0.99, epochs=100) 
 """96.92%"""
 
 # LDA 
-
 
 
 
@@ -380,21 +378,128 @@ print("LDA running time: {} s".format(logreg_time))
 ## 3.2 Improving the accuracy of the wine dataset 
 
 # Copy the dataset
-new_X_redwine = X_redwine.copy()
+def new_feats(X, only_quadratic=False, 
+                 only_interactions=False,
+                 all_interactions=False, 
+                 logarithmic=False, 
+                 correlation=0.6): 
+    """
+    Adds second order terms to the dataset: Either only quadratic terms, 
+    only interaction terms (X_i != X_j) or both, if they correlation is 
+    higher than a specified value. If 'logarithmic' is specified, 
+    it converts the parameters into logarithmic values. 
+    """
+    
+    # copy the original feature set
+    new_X = X.copy()
+    
+    if logarithmic: 
+        new_X = pd.DataFrame(new_X)
+        for col in new_X: 
+            new_X[col] = new_X[col].apply(lambda x: np.exp(x))
+        new_X = np.array(new_X)
+    
+    for col1 in T(X): 
+        for col2 in T(X): 
+            
+            if only_interactions: 
+                if stats.pearsonr(col1, col2)[0] >= 0.6 and not np.array_equal(col1, col2): 
+                    new_feat = np.multiply(col1, col2) 
+                    new_X = np.c_[new_X, new_feat]  
+                    
+            elif only_quadratic: 
+                if stats.pearsonr(col1, col2)[0] >= 0.6 and np.array_equal(col1, col2): 
+                    new_feat = np.multiply(col1, col2) 
+                    new_X = np.c_[new_X, new_feat]  
+                    
+            elif all_interactions: 
+                if stats.pearsonr(col1, col2)[0] >= 0.6: 
+                    new_feat = np.multiply(col1, col2) 
+                    new_X = np.c_[new_X, new_feat]  
+                
+                    
+    return new_X
 
-# All add interaction features
-for col1 in T(X_redwine): 
-    for col2 in T(X_redwine): 
-        new_feat = np.multiply(col1, col2) 
-        new_X_redwine = np.c_[new_X_redwine, new_feat]
+# Obtain new feature sets
+X_redwine_quadratic = new_feats(X_redwine, only_quadratic=True) 
+X_redwine_only_interactions = new_feats(X_redwine, only_interactions=True) 
+X_redwine_all = new_feats(X_redwine, all_interactions=True) 
+X_redwine_e = new_feats(X_redwine, logarithmic=True)
 
-# Train and test the model with the new feature set
-cross_validation(LogisticRegression, new_X_redwine, y_redwine, 
-                 folds = 5,
-                 shuffle=True , 
-                 random_state = 42, 
-                 alpha_rate=0.002, 
-                 auto_alpha=0.99, 
-                 epochs=200
-                 )
+
+
+# Run CV search for each of them  
+quadratic_accs =  CV_search(X_redwine_quadratic, y_redwine, 
+                            alphas=alphas, epochs_list=[50,100,150]) 
+
+"""Best: cv_acc_alpha=_0.002_epoch=150 -> 74.17"""
+
+only_interactions_accs = CV_search(X_redwine_only_interactions, y_redwine, 
+                                   alphas=alphas, epochs_list=[50,100,150]) 
+
+"""Best: cv_acc_alpha=_0.002_epoch=100 -> 74.35"""
+
+all_accs = CV_search(X_redwine_all, y_redwine, 
+                     alphas=alphas, epochs_list=[50,100,150])
+
+"""Best: cv_acc_alpha=_0.002_epoch=150 -> 73.67"""
+
+e_accs =  CV_search(X_redwine_e, y_redwine, 
+                     alphas=alphas, epochs_list=[50,100,150])
+
+"""Best: cv_acc_alpha=_0.0002_epoch=150 -> 63.66"""
+
+
+# We see that even with different interaction parameters as well as 
+# cross-validation grid search, we were unable to obtain a better accuracy. 
+
+# Now we will try to test every possible subset with the same parameter
+# configurations. 
+
+def best_subset(X,y): 
+    
+    new_X = X.copy() # create a copy 
+    new_X = pd.DataFrame(X) # convert to dataframe 
+    new_X_cols = set(new_X.columns) # obtain set of columns
+    accuracies = {} # dictionary to store 
+    
+    
+    # for each subset size
+    for k in range(len(new_X_cols)): 
+        # obtain all subsets of size k 
+        col_names_subsets = list(itertools.combinations(new_X_cols,k+2) )
+        print(col_names_subsets)
+        
+        # for each subset of size k 
+        for subset in col_names_subsets: 
+            # obtain the name
+            model_name = "subset_k={}_cols={}".format(k, str(subset))
+            X_subset = pd.DataFrame() # initialize empty data frame
+            print("\n{}\n".format(model_name))
+            
+            # obtain the columm number 
+            for col_num in subset: 
+                # append the column to a new data 
+                X_subset[col_num] = new_X[col_num]
+                                
+                
+            print(X_subset)
+            # fit_train a model and get CV accuracy
+            acc = cross_validation(LogisticRegression, 
+                                   X_subset, y_redwine, 
+                                   shuffle=True, 
+                                   folds=5, 
+                                   alpha_rate=0.002, 
+                                   auto_alpha=0.99, 
+                                   epochs=150) 
+            
+            # store that accuracy 
+            accuracies[model_name] = acc
+            
+            
+    return accuracies 
+
+
+# accuracies for all possible subset of original dataset
+bes_origin_accs = best_subset(X_redwine, y_redwine)
 
