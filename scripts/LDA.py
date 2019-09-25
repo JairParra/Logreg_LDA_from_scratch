@@ -198,3 +198,5 @@ class LDA:
          '''
          return self.find_log_odds(X_input)
 
+
+    
