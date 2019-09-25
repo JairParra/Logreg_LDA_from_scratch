@@ -1,20 +1,16 @@
 # -*- coding: utf-8 -*-
 """
 Created on Thu Sep 19 21:44:41 2019
-
 @ COMP 551 : Applied Machine Learning (Winter 2019)
 @ Mini-project 1 : Implementing Logistic Regression and LDA from scratch
-
 # Team Members: 
 @ Hair Albeiro Parra Barrera
 @ ID: 260738619 
-
 @ Sun Gengyi 
 @ ID: 260768270
     
 @ Shu hao
 @ ID: 
-
 @author: sungengyi
 """
 # *****************************************************************************
@@ -24,14 +20,7 @@ Created on Thu Sep 19 21:44:41 2019
 # ******************************************************************************
 
 ### 1. Imports ### 
-import math
-import scipy
-import random
 import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt 
-import seaborn as sns # easier & prettier visualization 
-from tqdm import tqdm # to display progress bar
 from numpy import transpose as T # because it is a pain in the ass
 from numpy.linalg import inv
 
@@ -166,12 +155,12 @@ class LDA:
         self.covariance = np.multiply(covariance,1/(self.N0+self.N1-2))
 
     def find_log_odds(self,X_input):
-        x_n = X_input[0].shape
+        x_n = X_input.shape[0]
         index = 0
         log_odds = 0
         y_output = np.zeros(x_n) 
 
-        first_term = np.log(test.PY1/test.PY0)  
+        first_term = np.log(self.PY1/self.PY0)  
         second_term = 1/2 * np. dot(np.dot(T(self.miu_1),inv(self.covariance)),self.miu_1)
         third_term = 1/2 * np. dot(np.dot(T(self.miu_0),inv(self.covariance)),self.miu_0)
         forth_term_part_2 = np.subtract(self.miu_1,self.miu_0)
@@ -194,10 +183,11 @@ class LDA:
         return y_output
             
 
-    def fit(self):
+    def fit(self,X,y):
         # calculate N1, N0, PY1, PY0, miu_1, miu_0
         # and its covariance matrix
         # store these values in the instance
+        self.__init__(X,y)
         self.find_probability()
         self.find_miu()
         self.find_covariance()
@@ -208,69 +198,3 @@ class LDA:
          '''
          return self.find_log_odds(X_input)
 
-
-        
-            
-
-#These are testing codes
-
-X_test = np.array([[5,2,3,4],
-                  [0,3,1,7],
-                  [7,0,1,2],
-                  [2,7,1,9]])
-X_input = np.array([[4,2,3,4],
-                  [0,3,1,7],
-                  [7,0,1,2],
-                  [2,7,1,9]])
-Y_test = np.array([[1],
-                  [1],
-                  [1],
-                  [0]])
-
-test = LDA(X_test,Y_test)
-test.find_probability()
-test.find_miu()
-test.find_covariance()
-
-print(test.find_log_odds(X_input))
-
-print("test_miu0",test.miu_0)
-print("test_miu1",test.miu_1)
-print("test covariance",test.covariance)
-print(test.predict(X_input))
-
-
-
-
-
-
-    
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
