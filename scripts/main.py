@@ -539,3 +539,13 @@ for acc in best_origin_accs:
 max_key = max(best_origin_accs.items(), key=operator.itemgetter(1))[0]
 print("Key: {}  Accuracy:{}%".format(max_key, best_origin_accs[max_key]))
 """ subset_k=5_cols=(1, 2, 5, 6, 7, 9, 10)  Accuracy:75.10932601880879% """
+
+
+# Obtain best feature subset 
+X_best = pd.DataFrame(X_redwine)[[1,2,5,6,7,9,10]]
+
+# Run cross validation on best feature subset
+cross_validation(LogisticRegression, X_best, y_redwine, shuffle=True, 
+                 folds=5, alpha_rate=0.002, auto_alpha=0.99, epochs=100) 
+""" Accuracy: 75.10% """
+
