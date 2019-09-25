@@ -232,7 +232,10 @@ def cross_validation(input_model, X,y,folds=5, shuffle=True, random_state = 42,
     np.random.seed(random_state)
     X = pd.DataFrame(X)  # convert to dataframe
     accuracies = np.zeros(folds)
-
+    
+    if verbose: 
+        print("(input) X.shape = ", X.shape) # input X
+        print("(input) y.shape = ", y.shape) # input y
     
     if shuffle: 
         X, y = shuffle_data(X,y)
@@ -265,6 +268,8 @@ def cross_validation(input_model, X,y,folds=5, shuffle=True, random_state = 42,
         if verbose: 
             print("shape X_train: ", X_train.shape)
             print("shape y_train: ", y_train.shape)
+            print("shape X_val: ", X_val.shape)
+            print("shape y_val: ", y_val.shape)
         
         
         # Test for instance of Logistic Regression 
@@ -277,8 +282,26 @@ def cross_validation(input_model, X,y,folds=5, shuffle=True, random_state = 42,
             
             # obtain accuracy  
             acc = evaluate_acc(model, X_val, y_val, verbose)
+            
             # append to the accs list 
             accuracies[k] = acc
+            
+        else:  
+            
+            # fit and train the model 
+            X_train = np.array(X_train) 
+            y_train = np.array(y_train) 
+            X_val = np.array(X_val) 
+            y_val = np.array(y_val)
+            
+            model.fit(X_train, y_train)
+            
+            # obtain accuracy 
+            acc = evaluate_acc(model, X_val, y_val, verbose) 
+            
+            # append to the accs list
+            accuracies[k] = acc 
+            
             
         mean_acc = np.mean(accuracies)
             
@@ -337,7 +360,9 @@ cross_validation(LogisticRegression, X_redwine, y_redwine, shuffle=True,
 """ 74.35% """
 
 # LDA 
-# ----------------------------------# 
+cross_validation(LDA, X_redwine, y_redwine, shuffle=True)
+"""74.42"""
+
 
 # 4.2.2 Cancer Dataset 
 
@@ -347,8 +372,8 @@ cross_validation(LogisticRegression, X_cancer, y_cancer, shuffle=True,
 """96.92%"""
 
 # LDA 
-
-
+cross_validation(LDA, X_cancer, y_cancer, shuffle=True, verbose=True)
+"""95.90%"""
 
 
 ## 4.3 Comparing Log Reg and LDA running times
@@ -362,25 +387,26 @@ logreg.fit(X_redwine,y_redwine, # fit and train the model
            threshold=0.001, # early stopping threshold
            epochs=100,  # max number of epochs 
            auto_alpha=0.99,  # alpha rate 
-           verbose=True)
+           )
 t1 = time.time() 
 logreg_time = t1 - t0 
 
 
-
-
 # LDA 
 t0 = time.time() 
-# LDA model running goes here 
+lda = LDA() 
+lda.fit(X_redwine, y_redwine)
 t1 = time.time() 
-LDA_time =  t1 - t1 
+LDA_time =  t1 - t0
     
 # Compare    
 print("Logistic regression running time: {} s".format(logreg_time))
-print("LDA running time: {} s".format(logreg_time))
+print("LDA running time: {} s".format(LDA_time))
 
 
 ## 3.2 Improving the accuracy of the wine dataset 
+
+
 
 # Copy the dataset
 def new_feats(X, only_quadratic=False, 
@@ -507,30 +533,7 @@ def best_subset(X,y, verbose=False):
 
 
 # accuracies for all possible subset of original dataset
-bes_origin_accs = best_subset(X_redwine, y_redwine)
+best_origin_accs = best_subset(X_redwine, y_redwine)
 
-
-            
-            
-    
-        
-                
-
-
-
-
-
-# *****************************************************************************
-
-# LDA TESTS
-
-X_test = X_redwine[0:100,:]
-y_test = y_redwine[0:100]
-evaluate_acc(logreg, X_test, y_test, verbose=True) # example how should work
-
-# test 7:33 pm tue
-lda = LDA(X_test, y_test) 
-lda.fit()
-print(len(lda.predict(X_test)))
-evaluate_acc(lda, X_test, y_test, verbose=True)
-
+for acc in best_origin_accs: 
+    print(acc)
