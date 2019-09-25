@@ -23,10 +23,8 @@ Created on Mon Sep 16 15:57:52 2019
 ### 1. Imports ### 
 
 import time
-import math
-import scipy
-import random
 import itertools 
+import operator
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt 
@@ -400,12 +398,11 @@ t1 = time.time()
 LDA_time =  t1 - t0
     
 # Compare    
-print("Logistic regression running time: {} s".format(logreg_time))
-print("LDA running time: {} s".format(LDA_time))
+print("Logistic regression running time: {} s".format(logreg_time)) # 4s
+print("LDA running time: {} s".format(LDA_time)) # 0.17s
 
 
 ## 3.2 Improving the accuracy of the wine dataset 
-
 
 
 # Copy the dataset
@@ -538,4 +535,7 @@ best_origin_accs = best_subset(X_redwine, y_redwine)
 for acc in best_origin_accs: 
     print(acc)
 
-    
+# Get key of subset combination with maximum accuracy 
+max_key = max(best_origin_accs.items(), key=operator.itemgetter(1))[0]
+print("Key: {}  Accuracy:{}%".format(max_key, best_origin_accs[max_key]))
+""" subset_k=5_cols=(1, 2, 5, 6, 7, 9, 10)  Accuracy:75.10932601880879% """
