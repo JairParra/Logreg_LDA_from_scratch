@@ -9,10 +9,10 @@ Created on Mon Sep 16 15:57:52 2019
 @ ID: 260738619 
 
 @ Sun Gengyi 
-@ ID:  
+@ ID: 260768270
     
 @ Hao Shu
-@ ID: 
+@ ID: 260776361
 """
 # *****************************************************************************
 
@@ -544,4 +544,8 @@ X_best = pd.DataFrame(X_redwine)[[1,2,5,6,7,9,10]]
 # Run cross validation on best feature subset
 cross_validation(LogisticRegression, X_best, y_redwine, shuffle=True, 
                  folds=5, alpha_rate=0.002, auto_alpha=0.99, epochs=100) 
-""" 75.10% """       
+""" 75.10% """
+
+    
+# ****************************************************************************
+               
