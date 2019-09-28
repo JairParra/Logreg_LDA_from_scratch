@@ -69,6 +69,10 @@ def normalize_df(df, columns=[]):
 # Get column names 
 red_wine_df_cols = list(red_wine_df.columns)[:-1] # don't include the targets
 
+for i, col in enumerate(red_wine_df_cols): 
+    print("{}. {}".format(i, col))
+
+
 # Normalize
 normalize_df(red_wine_df, columns=red_wine_df_cols)
 
@@ -353,8 +357,8 @@ def CV_search(X, y, alphas=[], epochs_list=[100], folds = 5):
         
 # Redwine dataset 
 redwine_accs = CV_search(X_redwine, y_redwine, alphas=alphas) 
-print("Redwine accuracies: ", redwine_accs)
-"""　Best: alpha 0.001 -> 74.48% """
+print("Parameters:{} Accuracy{}".format(redwine_accs)) 
+"""　Best: alpha 0.001, 100 epochs -> 74.48% """ 
 
 # Cancer dataset 
 cancer_accs = CV_search(X_cancer, y_cancer, alphas=alphas) 
@@ -417,11 +421,19 @@ print("LDA running time: {} s".format(LDA_time)) # 0.022s
 
 ## 3.3 Convergence speed of Logistic Regression depending on learning rate
 
-
+# We test different alphas in here
 alphas = [0.001, 0.01, 0.1, 0.5, 1.0, 1.5,2.0]
 
 def plot_learning_rate_convergence(X,y,alphas = [], auto_alpha=0.99, 
-                                   threshold = 0.01, epochs=100): 
+                                   threshold = 0.01, epochs=100, 
+                                   save_path=""): 
+    """
+    Tests different learning rates for the logisitc regression model, 
+    obtains accuracies and converging times adn generates a plot for each 
+    alpha rate tested. 
+    returns: 
+        @ (accuracies , converging_times)
+    """
     
     converging_times = [] # will store converging times in here 
     accuracies = [] # accuracies 
@@ -455,6 +467,7 @@ def plot_learning_rate_convergence(X,y,alphas = [], auto_alpha=0.99,
         ax.annotate(txt, (alphas[i], converging_times[i]))  
     
     plt.show() 
+    plt.savefig(save_path)
     
     return accuracies , converging_times
     
@@ -463,7 +476,8 @@ def plot_learning_rate_convergence(X,y,alphas = [], auto_alpha=0.99,
 accs, conv_times = plot_learning_rate_convergence(X_redwine, y_redwine, alphas = alphas, 
                                auto_alpha = 0.99, 
                                threshold = 0.01, 
-                               epochs = 100)
+                               epochs = 100, 
+                               save_path="..//figs//alphas_convergence.png")
 
 
 ## 3.4 Improving the accuracy of the wine dataset: feature engineering 
@@ -524,27 +538,46 @@ X_redwine_all = new_feats(X_redwine, all_interactions=True)
 X_redwine_e = new_feats(X_redwine, exponential=True)
 
 
+# Perform CV search for each of these
 
-# Run CV search for each of them  
+# 1. Quadratic accuracies 
 quadratic_accs =  CV_search(X_redwine_quadratic, y_redwine, 
                             alphas=alphas, epochs_list=[50,100,150]) 
 
-"""Best: cv_acc_alpha=_0.002_epoch=150 -> 74.17"""
+max_key = max(quadratic_accs.items(), key=operator.itemgetter(1))[0]
+print("{} -> Accuracy:{}%".format(max_key, round(quadratic_accs[max_key], 2 )))
 
+"""cv_acc_alpha=_0.001_epoch=100 -> Accuracy:74.17%"""
+
+
+# 2. Only interactions
 only_interactions_accs = CV_search(X_redwine_only_interactions, y_redwine, 
                                    alphas=alphas, epochs_list=[50,100,150]) 
 
-"""Best: cv_acc_alpha=_0.002_epoch=100 -> 74.35"""
+max_key = max(only_interactions_accs.items(), key=operator.itemgetter(1))[0]
+print("{} -> Accuracy:{}%".format(max_key, round(only_interactions_accs[max_key], 2 )))
 
+"""cv_acc_alpha=_0.001_epoch=50 -> Accuracy:74.23%"""
+
+
+# 3. Interactions and quadratic features
 all_accs = CV_search(X_redwine_all, y_redwine,  # use both quadratic and interactions
                      alphas=alphas, epochs_list=[50,100,150])
 
-"""Best: cv_acc_alpha=_0.002_epoch=150 -> 73.67"""
+max_key = max(all_accs.items(), key=operator.itemgetter(1))[0]
+print("{} -> Accuracy:{}%".format(max_key, round(all_accs[max_key], 2 )))
 
+"""cv_acc_alpha=_0.001_epoch=150 -> Accuracy:73.67%"""
+
+
+# Exponential features
 e_accs =  CV_search(X_redwine_e, y_redwine, 
                      alphas=alphas, epochs_list=[50,100,150])
 
-"""Best: cv_acc_alpha=_0.0002_epoch=150 -> 63.66"""
+max_key = max(e_accs.items(), key=operator.itemgetter(1))[0]
+print("{} -> Accuracy:{}%".format(max_key, round(e_accs[max_key], 2 )))
+
+"""cv_acc_alpha=_1_epoch=150 -> Accuracy:66.04%"""
 
 
 # We see that even with different interaction parameters as well as 
@@ -617,10 +650,12 @@ alphas = [0.001, 0.001, 0.002, 0.004, 0.005, 0.006, 0.007, 0.008, 0.009, 0.01]
 accs, conv_times = plot_learning_rate_convergence(X_best, y_redwine, alphas = alphas, 
                                auto_alpha = 0.99, 
                                threshold = 0.01, 
-                               epochs = 100)
+                               epochs = 100, 
+                               save_path='../figs/small_alpha_convergence.png')
 
 # best accuracy: 
 print("Best accuracy: {} Learning rate {}".format(np.max(accs), alphas[np.argmax(accs)] ))
+"""Best accuracy: 75.23413009404389 Learning rate 0.001"""
 
 
 # Run cross validation on best feature subset
