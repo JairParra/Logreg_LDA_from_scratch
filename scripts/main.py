@@ -47,6 +47,8 @@ red_wine_df = pd.read_csv('../data_raw/winequality-red.csv', sep = ';')
 red_wine_df.loc[red_wine_df['quality'] > 5, 'quality'] = 1  # Good quality
 red_wine_df.loc[red_wine_df['quality'] != 1, 'quality'] = 0 # Bad quality 
 
+red_wine_df_stats = red_wine_df.drop('quality', axis=1).describe()
+
 # note that the data is all in different scales, therefore we will normalize 
 # each feature column/ 
 
@@ -75,6 +77,7 @@ print("Red wine df shape: {}".format(red_wine_df.shape))
 print("Red wine 'Good' counts: ", red_wine_df['quality'][red_wine_df['quality'] == 1].count() )
 print("Red wine 'Bad' counds: ", red_wine_df['quality'][red_wine_df['quality'] == 0].count() )
 red_wine_df_stats = red_wine_df.drop('quality', axis=1).describe()
+print(red_wine_df_stats)
 
 # Label distribution plot
 sns.countplot(red_wine_df['quality'])
@@ -449,7 +452,7 @@ def plot_learning_rate_convergence(X,y,alphas = [], auto_alpha=0.99,
     plt.title("Learning Rate Convergence for different alphas")
     
     for i, txt in enumerate(accuracies):
-        ax.annotate(txt, (alphas[i], converging_times[i]))
+        ax.annotate(txt, (alphas[i], converging_times[i]))  
     
     plt.show() 
     
