@@ -607,11 +607,24 @@ print("Key: {}  Accuracy:{}%".format(max_key, best_origin_accs[max_key]))
 # Obtain best feature subset 
 X_best = pd.DataFrame(X_redwine)[[1,2,5,6,7,9,10]]
 
+# Test very small learning rates for best subset 
+alphas = [0.001, 0.001, 0.002, 0.004, 0.005, 0.006, 0.007, 0.008, 0.009, 0.01]
+
+# Cross validated accuracy and running time for each alpha 
+accs, conv_times = plot_learning_rate_convergence(X_best, y_redwine, alphas = alphas, 
+                               auto_alpha = 0.99, 
+                               threshold = 0.01, 
+                               epochs = 100)
+
+# best accuracy: 
+print("Best accuracy: {} Learning rate {}".format(np.max(accs), alphas[np.argmax(accs)] ))
+
+
 # Run cross validation on best feature subset
 cross_validation(LogisticRegression, X_best, y_redwine, shuffle=True, 
-                 folds=5, alpha_rate=0.002, auto_alpha=0.99, epochs=100) 
-""" 75.10% """
+                 folds=5, alpha_rate=0.001, auto_alpha=0.99, epochs=100) 
+""" 75.23% """
 
     
 # ****************************************************************************
-          
+                
