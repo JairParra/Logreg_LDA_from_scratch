@@ -10,6 +10,12 @@ https://www.overleaf.com/read/nspmywnqmqhv
 ## Boxplot fo the cancer dataset target distribution 
 ![](figs/cancer_countplot.png)
 
+## Redwine normalized features pairplot
+![](figs/redwine_pairplot.png)
+
+## Cancer normalized features pairplot 
+![](figs/cancer_pariplot.png)
+
 ## Training loss for Logistic Regression with Gradient Descent
 ![](figs/training_loss_ex.png)
 
