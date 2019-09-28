@@ -1,4 +1,4 @@
-# COMP551_PROJ_1
+# Logreg_LDA_from_scratch
 Implementing Logistic Regression and LDA from scratch. 
 
 Our paper: 
