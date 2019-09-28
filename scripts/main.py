@@ -67,9 +67,6 @@ def normalize_df(df, columns=[]):
 # Get column names 
 red_wine_df_cols = list(red_wine_df.columns)[:-1] # don't include the targets
 
-# Pairplot without normalization 
-sns.pairplot(red_wine_df.drop('quality', axis= 1), diag_kind="kde" )
-
 # Normalize
 normalize_df(red_wine_df, columns=red_wine_df_cols)
 
@@ -87,6 +84,11 @@ plt.savefig('../figs/redwine_countplot.png')
 sns.pairplot(red_wine_df.drop('quality', axis= 1), diag_kind='kde')
 plt.savefig('../figs/redwine_pairplot.png')
 
+# Correlation plot 
+redwine_corr = red_wine_df.corr()['quality'].drop('quality') # obtain correlations with target 
+print(redwine_corr) # display them 
+sns.heatmap(red_wine_df.corr(), cmap='Blues')
+plt.show() 
 
 
 ## 2.2 Load the breast cancer dataset 
@@ -125,7 +127,7 @@ cancer_df =  pd.read_csv('../data_raw/breast-cancer-wisconsin.data') # read data
 cancer_df.columns = cancer_cols  # rename columns 
 cancer_df = cancer_df.dropna().drop('id', axis=1) # drop na rows and id
 cancer_df = cancer_df[cancer_df['Bare Nuclei'] != '?'] # drop rows with missing vals 
-cancer_df['Bare Nuclei'] = pd.to_numeric(cancer_df['Bare Nuclei']) # change back to int
+cancer_df['Bare Nuclei'] = pd.to_numeric(cancer_df['Bare Nuclei']) # change back to float
 cancer_df.loc[cancer_df['Class'] == 4, 'Class' ] = 0 # malignant
 cancer_df.loc[cancer_df['Class'] == 2, 'Class' ] = 1 # benign
 
@@ -151,6 +153,13 @@ plt.savefig('../figs/cancer_countplot.png')
 # Features pairplot
 sns.pairplot(cancer_df.drop('Class',axis=1), diag_kind='kde')
 plt.savefig('../figs/cancer_pariplot.png')
+
+# Correlations 
+cancer_corr = cancer_df.corr()['Class'].drop('Class') # obtain correlations with target 
+print(cancer_corr) # display them 
+sns.heatmap(cancer_df.corr(), cmap='Blues')
+plt.show() 
+
 
 # Since the all the features seem to lie in similar ranges, we will not
 # normalize them. 
@@ -225,7 +234,8 @@ def evaluate_acc(model, X_test, y_test, verbose=True):
 
 
 def cross_validation(input_model, X,y,folds=5, shuffle=True, random_state = 42, 
-                     alpha_rate=0.002, auto_alpha=0.99, epochs=100, verbose=False):
+                     threshold = 0.01, alpha_rate=0.001, auto_alpha=0.99,
+                     epochs=100, verbose=False):
     
     np.random.seed(random_state)
     X = pd.DataFrame(X)  # convert to dataframe
@@ -315,7 +325,7 @@ def cross_validation(input_model, X,y,folds=5, shuffle=True, random_state = 42,
     
 ## 4.1 : Testing different learning rates for Logistic Regression 
     
-alphas = [1, 0.2, 0.02, 0.002, 0.0002]
+alphas = [1, 0.1, 0.01, 0.001, 0.0001]
 
 def CV_search(X, y, alphas=[], epochs_list=[100], folds = 5): 
     """
@@ -341,12 +351,12 @@ def CV_search(X, y, alphas=[], epochs_list=[100], folds = 5):
 # Redwine dataset 
 redwine_accs = CV_search(X_redwine, y_redwine, alphas=alphas) 
 print("Redwine accuracies: ", redwine_accs)
-"""　Best: alpha 0.002 -> 74.35% """
+"""　Best: alpha 0.001 -> 74.48% """
 
 # Cancer dataset 
 cancer_accs = CV_search(X_cancer, y_cancer, alphas=alphas) 
 print("Cancer accuracies: ", cancer_accs)
-"""　Best: alpha 0.02 -> 96.92% """
+"""　Best: alpha 0.02 -> 97.22% """
 
 ## 4.2 Comparing best LogReg accuracy vs. best LDA accuracy 
 
@@ -354,8 +364,8 @@ print("Cancer accuracies: ", cancer_accs)
 
 # Logistic Regression 
 cross_validation(LogisticRegression, X_redwine, y_redwine, shuffle=True, 
-                 folds=5, alpha_rate=0.002, auto_alpha=0.99, epochs=100) 
-""" 74.35% """
+                 folds=5, alpha_rate=0.001, auto_alpha=0.99, epochs=100) 
+""" 74.48% """
 
 # LDA 
 cross_validation(LDA, X_redwine, y_redwine, shuffle=True)
@@ -366,8 +376,8 @@ cross_validation(LDA, X_redwine, y_redwine, shuffle=True)
 
 # Logistic Regression 
 cross_validation(LogisticRegression, X_cancer, y_cancer, shuffle=True, 
-                 folds=5, alpha_rate=0.2, auto_alpha=0.99, epochs=100) 
-"""96.92%"""
+                 folds=5, alpha_rate=0.1, auto_alpha=0.99, epochs=100) 
+"""97.22%"""
 
 # LDA 
 cross_validation(LDA, X_cancer, y_cancer, shuffle=True, verbose=True)
@@ -381,8 +391,8 @@ cross_validation(LDA, X_cancer, y_cancer, shuffle=True, verbose=True)
 t0 = time.time() 
 logreg = LogisticRegression() # instantiate 
 logreg.fit(X_redwine,y_redwine, # fit and train the model 
-           alpha=0.002,  # learning rate
-           threshold=0.001, # early stopping threshold
+           alpha=0.001,  # learning rate
+           threshold=0.01, # early stopping threshold
            epochs=100,  # max number of epochs 
            auto_alpha=0.99,  # alpha rate 
            )
@@ -398,18 +408,69 @@ t1 = time.time()
 LDA_time =  t1 - t0
     
 # Compare    
-print("Logistic regression running time: {} s".format(logreg_time)) # 4s
-print("LDA running time: {} s".format(LDA_time)) # 0.17s
+print("Logistic regression running time: {} s".format(logreg_time)) # 3.821s
+print("LDA running time: {} s".format(LDA_time)) # 0.022s
 
 
-## 3.2 Improving the accuracy of the wine dataset 
+## 3.3 Convergence speed of Logistic Regression depending on learning rate
+
+
+alphas = [0.001, 0.01, 0.1, 0.5, 1.0, 1.5,2.0]
+
+def plot_learning_rate_convergence(X,y,alphas = [], auto_alpha=0.99, 
+                                   threshold = 0.01, epochs=100): 
+    
+    converging_times = [] # will store converging times in here 
+    accuracies = [] # accuracies 
+    
+    # time for every alpha
+    for alpha in alphas: 
+        t0 = time.time() # initial time 
+        accuracies.append(cross_validation(LogisticRegression, 
+                                           X,y, alpha_rate=alpha, 
+                                           auto_alpha=auto_alpha,  
+                                           threshold=threshold,  
+                                           epochs=epochs))
+        
+#        logreg = LogisticRegression() # initialize
+#        logreg.fit(X,y, alpha=alpha, 
+#                   auto_alpha=auto_alpha, 
+#                   threshold=threshold,
+#                   epochs=epochs) # fit and train 
+        t1 = time.time() # final time
+        t = t1 - t0 # difference
+        converging_times.append(t) # append to list 
+        
+    fig, ax = plt.subplots()
+    ax.scatter(alphas, converging_times) 
+    ax.plot(alphas, converging_times) 
+    plt.xlabel('Alpha') 
+    plt.ylabel('Running_time (s)') 
+    plt.title("Learning Rate Convergence for different alphas")
+    
+    for i, txt in enumerate(accuracies):
+        ax.annotate(txt, (alphas[i], converging_times[i]))
+    
+    plt.show() 
+    
+    return accuracies , converging_times
+    
+
+# Cross validated accuracy and running time for each alpha 
+accs, conv_times = plot_learning_rate_convergence(X_redwine, y_redwine, alphas = alphas, 
+                               auto_alpha = 0.99, 
+                               threshold = 0.01, 
+                               epochs = 100)
+
+
+## 3.4 Improving the accuracy of the wine dataset: feature engineering 
 
 
 # Copy the dataset
 def new_feats(X, only_quadratic=False, 
                  only_interactions=False,
                  all_interactions=False, 
-                 logarithmic=False, 
+                 exponential=False, 
                  correlation=0.6): 
     """
     Adds second order terms to the dataset: Either only quadratic terms, 
@@ -421,14 +482,19 @@ def new_feats(X, only_quadratic=False,
     # copy the original feature set
     new_X = X.copy()
     
-    if logarithmic: 
-        new_X = pd.DataFrame(new_X)
-        for col in new_X: 
-            new_X[col] = new_X[col].apply(lambda x: np.exp(x))
-        new_X = np.array(new_X)
+    # try logarithmic features
+    if exponential: 
+        new_feats_X = pd.DataFrame(new_X)
+        
+        for col in new_feats_X: 
+            new_feats_X[col] = new_feats_X[col].apply(lambda x: np.exp(x))
+            
+        new_feats_X = np.array(new_feats_X) 
+        new_X = np.c_[new_X, new_feats_X]
     
     for col1 in T(X): 
         for col2 in T(X): 
+            # all of these have the original dataset 
             
             if only_interactions: 
                 if stats.pearsonr(col1, col2)[0] >= 0.6 and not np.array_equal(col1, col2): 
@@ -452,7 +518,7 @@ def new_feats(X, only_quadratic=False,
 X_redwine_quadratic = new_feats(X_redwine, only_quadratic=True) 
 X_redwine_only_interactions = new_feats(X_redwine, only_interactions=True) 
 X_redwine_all = new_feats(X_redwine, all_interactions=True) 
-X_redwine_e = new_feats(X_redwine, logarithmic=True)
+X_redwine_e = new_feats(X_redwine, exponential=True)
 
 
 
@@ -467,7 +533,7 @@ only_interactions_accs = CV_search(X_redwine_only_interactions, y_redwine,
 
 """Best: cv_acc_alpha=_0.002_epoch=100 -> 74.35"""
 
-all_accs = CV_search(X_redwine_all, y_redwine, 
+all_accs = CV_search(X_redwine_all, y_redwine,  # use both quadratic and interactions
                      alphas=alphas, epochs_list=[50,100,150])
 
 """Best: cv_acc_alpha=_0.002_epoch=150 -> 73.67"""
@@ -548,4 +614,4 @@ cross_validation(LogisticRegression, X_best, y_redwine, shuffle=True,
 
     
 # ****************************************************************************
-               
+          
