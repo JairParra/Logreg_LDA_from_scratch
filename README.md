@@ -1,8 +1,7 @@
 # Logreg_LDA_from_scratch
 Implementing Logistic Regression and LDA from scratch, as well as data cleaning,  visualizations, k-fold cross-validation, CV-search, data-shufffling and feature engineering. 
 
-Our paper: 
-https://www.overleaf.com/read/nspmywnqmqhv
+Our paper: https://drive.google.com/file/d/1Ylg6MuNNjk6fBfCsZLKrxoeye4gG7hGZ/view?usp=sharing
 
 ## Boxplot of the red wine dataset target distribution 
 ![](figs/redwine_countplot.png)
