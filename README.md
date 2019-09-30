@@ -1,5 +1,5 @@
 # Logreg_LDA_from_scratch
-Implementing Logistic Regression and LDA from scratch. 
+Implementing Logistic Regression and LDA from scratch, as well as data cleaning,  visualizations, k-fold cross-validation, CV-search, data-shufffling and feature engineering. 
 
 Our paper: 
 https://www.overleaf.com/read/nspmywnqmqhv
@@ -10,14 +10,14 @@ https://www.overleaf.com/read/nspmywnqmqhv
 ## Boxplot fo the cancer dataset target distribution 
 ![](figs/cancer_countplot.png)
 
-## Redwine normalized features pairplot
-![](figs/redwine_pairplot.png)
-
-## Cancer normalized features pairplot 
-![](figs/cancer_pariplot.png)
-
 ## Training loss for Logistic Regression with Gradient Descent
 ![](figs/training_loss_ex.png)
 
 ## Cross-validation running times with CV-accuracies for diffferent learning rates 
 ![](figs/alphas_convergence.png)
+
+## Redwine normalized features pairplot
+![](figs/redwine_pairplot.png)
+
+## Cancer normalized features pairplot 
+![](figs/cancer_pariplot.png)
